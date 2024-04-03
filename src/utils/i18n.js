@@ -1,0 +1,144 @@
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+i18n.use(initReactI18next).init({
+  compatibilityJSON: 'v3', 
+  resources: {
+    en: {
+      translations: {
+        singin: 'Sign In',
+        signingIn: 'Signing In...',
+        welcome: 'Hello from Petty House!',
+        userName: 'Username',
+        password: 'Password',
+        forgotPassword: 'Forgot Password?',
+        donnotHaveAccount: "Don't have an account yet? ",
+        signupNow: 'Register now',
+        loginError: 'Login failed',
+        invalidCredentials: 'Incorrect password. Please try again!',
+        // emailInvalid: 'Invalid email format',
+        // userNameInvalid: 'Username must be at least 6 characters long',
+        passwordInvalid:'Password must be at least 8 characters long',
+        noInternet: 'No internet connection',
+        close: 'Close',
+        noAccountFound: 'The username you entered does not exist',
+        //Register Screen i18
+        email : 'Email',
+        createAccount: 'Register your account now! ',
+        register: 'Register',
+        registering: 'Registering...',
+        confirmPassword: 'Confirm Password',
+        fullname: 'Full name',
+        alreadyHaveAccount: 'Already have an account?',
+        signinNow: 'Sign In now! ',
+        registrationError: 'Error during registration',
+        registrationSuccess: 'Registration successful',
+        registrationSuccessMessage: 'Welcome to Petty House! Your account has been successfully registered!',
+        userNameRequired: 'Username is required',
+        usernameMinLength: 'Username must be at least 3 characters long',
+        usernamePattern: 'Username must contain letters and numbers',
+        usernameMaxLength: 'Username must be at most 30 characters long',
+        fullNameRequired: 'Full name is required',
+        emailRequired: 'Email is required',
+        invalidEmail: 'Invalid email format',
+        passwordRequired: 'Password is required',
+        confirmPasswordRequired: 'Confirm password is required',
+        passwordMinLength: 'Password must be at least 8 characters long',
+        passwordPattern: 'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
+        confirmPasswordNotMatch: 'Passwords mismatch',
+        usernameAlreadyExists: 'The username or email you entered already exists. Please try again',
+        // Add more translations as needed
+        //Forgot Password Screen
+        forgotPasswordTitle: 'Recover Your Password',
+        forgotPasswordDescription: 'Enter the email connected to your account to reset your password.',
+        forgotPasswordButton: 'Continue',
+        forgotPasswordButtonProcessing: 'Sending...',
+      },
+    },
+    vi: {
+      translations: {
+        email : 'Email',
+        singin: 'Đăng nhập',
+        signingIn: 'Đang đăng nhập...',
+        welcome: 'Petty House Xin chào!',
+        userName: 'Tên tài khoản',
+        password: 'Mật khẩu',
+        forgotPassword: 'Bạn quên mật khẩu?',
+        donnotHaveAccount: 'Bạn chưa có tài khoản?',
+        signupNow: 'Đăng ký ngay',
+        loginError: 'Đăng nhập thất bại',
+        invalidCredentials: 'Mật khẩu không chính xác. Xin vui lòng thử lại.',
+        emailInvalid: 'Định dạng email không hợp lệ',
+        userNameInvalid: 'Tên tài khoản phải dài ít nhất 6 ký tự',
+        passwordInvalid:'Mật khẩu phải dài ít nhất 8 ký tự',
+        noInternet: 'Không có kết nối Internet',
+        close: 'Đóng',
+        noAccountFound: "Tên tài khoản này không tồn tại trong hệ thống",
+         //Register Screen i18
+        createAccount: 'Đăng ký tài khoản ngay!',
+        register: 'Đăng ký',
+        registering: 'Đang đăng ký...',
+        confirmPassword: 'Mật khẩu xác nhận',
+        fullname: 'Họ và tên',
+        alreadyHaveAccount: 'Bạn đã có tài khoản?',
+        signinNow: 'Đăng nhập ngay!',
+        registrationError: 'Đăng ký không thành công',
+        registrationSuccess: 'Đăng ký thành công',
+        registrationSuccessMessage: 'Chào mừng bạn đến với Petty House! Tài khoản của bạn đã được đăng ký thành công!',
+        userNameRequired: 'Tên tài khoản không được bỏ trống',
+        usernameMinLength: 'Tên tài khoản phải dài nhất 3 ký tự',
+        usernamePattern: 'Tên tài khoản phải chứa chữ và một số',
+        usernameMaxLength: 'Tên tài khoản chỉ được dài nhất 30 ký tự',
+        emailRequired: 'Email không được bỏ trốnng',
+        passwordRequired: 'Mật khẩu không được bỏ trống',
+        invalidEmail: 'Định dạng email không hợp lệ',
+        fullNameRequired: 'Họ và tên không được bỏ trống',
+        confirmPasswordRequired: 'Mật khẩu xác nhận không được bỏ trốnng',
+        passwordMinLength: 'Mật khẩu phải dài ít nhất 8 ký tự',
+        passwordPattern: 'Mật khẩu phải chứa ít nhất một chữ cái hoa, một chữ cái thường, một số và một ký tự đặc biệt',
+        confirmPasswordNotMatch: 'Mật khẩu xác nhận không trùng khớp với mật khẩu đã nhập',
+        userNameEmailExists: 'Tên tài khoản hoặc đã được sử dụng. Xin vui lòng thử lại!',
+        // Add more translations as needed,
+        //Forgot Password Screen
+        forgotPasswordTitle: 'Khôi phục mật khẩu của bạn',
+        forgotPasswordDescription: 'Nhập email được liên kết với tài khoản của bạn để đặt lại mật khẩu.',
+        forgotPasswordButton: 'Tiếp tục',
+        forgotPasswordButtonProcessing: 'Đang gửi...',
+      },
+    },
+    // Add more languages as needed
+  },
+  fallbackLng: 'vi',
+  debug: true,
+
+  ns: ['translations'],
+  defaultNS: 'translations',
+
+  keySeparator: false,
+
+  interpolation: {
+    escapeValue: false,
+    formatSeparator: ',',
+  },
+
+  react: {
+    wait: true,
+  },
+
+  initImmediate: false, // Prevent loading with your fallbackLn
+
+});
+// Load the language preference asynchronously from AsyncStorage
+AsyncStorage.getItem('language').then((language) => {
+  if (language) {
+    i18n.changeLanguage(language);
+  } else {
+    i18n.changeLanguage('vi'); // Fallback to 'vn' if no preference is found
+  }
+}).catch((error) => {
+  console.error('Error loading language preference:', error);
+  i18n.changeLanguage('vi'); // Fallback to 'vn' in case of an error
+});
+
+export default i18n;
