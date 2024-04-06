@@ -1,56 +1,105 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import AppNavigator from './src/navigation/AppNavigator';
+import { useEffect, useState } from 'react';
+import { StyleSheet, View, Image } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import i18n from './src/utils/i18n';
+import { NavigationContainer } from '@react-navigation/native';
+import AppNavigator from './src/navigation/AppNavigator'; // Your navigation setup
 import { Provider } from 'react-redux';
 import { store } from './src/store/store';
-
-
 import {
   MD3LightTheme as DefaultTheme,
   PaperProvider,
+  Snackbar,
 } from 'react-native-paper';
+import pb from './src/services/pocketBase'; // Your PocketBase setup
+import { checkInitialAuth } from './src/utils/authUtils';
+import useNetworkStatus from './src/hooks/useNetworkStatus';
+import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
 
+SplashScreen.preventAutoHideAsync().catch(/* ... */);
 
-SplashScreen.preventAutoHideAsync();
-setTimeout(() => {
-  SplashScreen.hideAsync();
-}, 1000);
-
+// Your theme definition
 const theme = {
   ...DefaultTheme,
-  // Specify custom property
-  myOwnProperty: true,
-  // Specify custom property in nested object
   colors: {
     ...DefaultTheme.colors,
     primary: '#b5e1eb',
+    primaryContainer: '#f0f9fc',
     accent: '#f0f9fc',
-    background: '#fff'
+    background: '#fff',
+    elevation: {
+      level0: '#f0f9fc',
+      level1: '#f0f9fc',
+      level2: '#f0f9fc',
+      level3: '#f0f9fc',
+      level4: '#f0f9fc',
+      level5: '#f0f9fc',
+    }
   },
 };
 
 export default function App() {
+  const [isAppReady, setIsAppReady] = useState(false);
+  const { snackBarVisible, onDismissSnackBar, dismissSnackBar } = useNetworkStatus();
+  const { t } = useTranslation();
+  
+  useEffect(() => {
+    const init = async () => {
+      await checkInitialAuth();
+      await SplashScreen.hideAsync();
+      setIsAppReady(true);
+    };
+
+    init();
+  }, []);
+
+  if (!isAppReady) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image source={require('./assets/splash.png')} style={styles.splashImage} />
+      </View>
+    );
+  }
 
   return (
     <Provider store={store}>
       <PaperProvider theme={theme}>
         <NavigationContainer>
-          <AppNavigator />
+          <AppNavigator initialRouteName={pb.authStore.isValid ? 'BottomNav' : 'Login'} />
           <StatusBar style="auto" />
         </NavigationContainer>
+        <Snackbar
+                visible={snackBarVisible}
+                onDismiss={onDismissSnackBar}
+                duration={1000000000000000}
+                style={{ backgroundColor: '#f0f9fc' }}
+                theme={{ colors: { primary: '#b5e1eb', inverseOnSurface: '#000000' } }}
+                action={{
+                    label: t('close'),
+                    labelStyle: { color: '#b5e1eb' },
+                    onPress: () => {
+                        dismissSnackBar();
+                    },
+                    rippleColor: '#b5e1eb',
+                }}
+            >
+                {t('noInternet')}
+            </Snackbar>
       </PaperProvider>
     </Provider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  splashContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',  
     alignItems: 'center',
     justifyContent: 'center',
   },
+  splashImage: {
+    width: 390, // Adjust if needed
+    height: 350, // Adjust if needed
+  }
 });

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, Image, Keyboard } from 'react-native';
 import { TextInput, Button, Icon, HelperText, Snackbar, Banner } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from '@react-navigation/native';
@@ -9,13 +9,11 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store/rootReducer';
 import pb from '../services/pocketBase';
 import { validateEmail } from '../utils/validationHelpers';
-import useNetworkStatus from '../hooks/useNetworkStatus';
 import BackButton from '../components/button/backButton';
 
 const RequestPasswordScreen = () => {
     const navigation = useNavigation();
-    const { snackBarVisible, onDismissSnackBar, dismissSnackBar } = useNetworkStatus();
-    const [visible, setVisible] = React.useState(true);
+    const [visible, setVisible] = useState(true);
 
     const storedEmail = useSelector((state: RootState) => state.auth.globalEmail);
     const { t } = useTranslation();
@@ -37,6 +35,11 @@ const RequestPasswordScreen = () => {
             navigation.navigate('Login' as never);
         }
     };
+    useEffect(() => {
+        if (storedEmail) {
+            setEmail(storedEmail);
+        }
+    }, [storedEmail]);
     /**
      * Validates the email and password inputs and sets corresponding error states.
      *
@@ -54,21 +57,22 @@ const RequestPasswordScreen = () => {
      *
      * @return {Promise<void>} - A promise that resolves when the login process is complete.
      */
-    const handleRegister = async () => {
+    const handleRequestPass = async () => {
         // // Validate inputs
         const isValid = await validateInputs();
         if (!isValid) {
             return;
         }
         try {
+            Keyboard.dismiss();
             setIsLoading(true);
-            await pb.collection('users').create({
-                email,
-            });
+            await pb.collection('users').requestPasswordReset(
+                email
+            );
             // Successful registration
             setShowDialog(true);
             setIsSuccess(true);
-            setMessage(t('registrationSuccessMessage')); // Adjust as needed
+            setMessage(t('emailSentSuccessMessage')); // Adjust as needed
             setIsLoading(false);
 
         } catch (error) {
@@ -77,7 +81,7 @@ const RequestPasswordScreen = () => {
             setIsLoading(false);
             setIsSuccess(false);
             setShowDialog(true);
-            setMessage(t('usernameAlreadyExists'));
+            setMessage(t('emailSentErrorMessage')); // Adjust as needed
         }
     };
 
@@ -111,7 +115,8 @@ const RequestPasswordScreen = () => {
                                 size={size}
                                 color="#b5e1eb"
                             />
-                        )}>
+                        )}
+                    >
                         {t('forgotPasswordDescription')}
                     </Banner>
                     <View style={styles.inputContainer}>
@@ -120,6 +125,7 @@ const RequestPasswordScreen = () => {
                             style={styles.input}
                             label={t('email')}
                             left={<TextInput.Icon icon="email" color="#b5e1eb" />}
+                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
                             value={email}
                             onChangeText={setEmail}
                             outlineColor='#ccc'
@@ -136,7 +142,7 @@ const RequestPasswordScreen = () => {
                     </View>
                     <Button
                         mode="contained"
-                        onPress={handleRegister}
+                        onPress={handleRequestPass}
                         style={{ marginTop: 20 }}
                         labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                         disabled={isLoading}
@@ -144,7 +150,7 @@ const RequestPasswordScreen = () => {
                     >
                         {!isLoading ? t('forgotPasswordButton') : t('forgotPasswordButtonProcessing')}
                     </Button>
-                    <View
+                    {/* <View
                         style={styles.signUpContainer}
                     >
                         <Text style={styles.signUpText}>{t('donnotHaveAccount')}</Text>
@@ -154,30 +160,16 @@ const RequestPasswordScreen = () => {
                             >
                                 {t('signupNow')}</Text>
                         </TouchableOpacity>
-                    </View>
+                    </View> */}
                 </View>
             </View>
             <TextDialog
-                icon={isSuccess ? "check-circle" : "alert-outline"}
+                icon={isSuccess ? "email-outline" : "alert-outline"}
                 isVisible={showDialog}
                 onDismiss={onDismissDialog}
-                title={isSuccess ? t('registrationSuccess') : t('registrationError')}
+                title={isSuccess ? t('emailSentSuccess') : t('emailSentError')}
                 content={message}
             />
-            <Snackbar
-                visible={snackBarVisible}
-                onDismiss={onDismissSnackBar}
-                duration={1000000000000000}
-                action={{
-                    label: t('close'),
-                    labelStyle: { color: '#b5e1eb' },
-                    onPress: () => {
-                        dismissSnackBar();
-                    }
-                }}
-            >
-                {t('noInternet')}
-            </Snackbar>
         </KeyboardAwareScrollView>
     );
 };
@@ -216,10 +208,10 @@ const styles = StyleSheet.create({
     },
     dogImage: {
         position: 'absolute',
-        top: 130,
-        right: 15,
-        width: 140,
-        height: 150,
+        top: 115,
+        right: 5,
+        width: 160,
+        height: 160,
     },
     bottomContainer: {
         flex: 1,
@@ -237,24 +229,24 @@ const styles = StyleSheet.create({
         // marginTop: 5,
         backgroundColor: '#fff',
     },
-    signUpContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        marginBottom: 10
-    },
-    signUpText: {
-        fontSize: 15,
-        paddingBottom: 10,
-    },
-    signUpButton: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#b5e1eb',
-        padding: 10,
-        marginLeft: -3
-    }
+    // signUpContainer: {
+    //     flex: 1,
+    //     flexDirection: 'row',
+    //     alignItems: 'flex-end',
+    //     justifyContent: 'center',
+    //     marginBottom: 10
+    // },
+    // signUpText: {
+    //     fontSize: 15,
+    //     paddingBottom: 10,
+    // },
+    // signUpButton: {
+    //     fontSize: 15,
+    //     fontWeight: 'bold',
+    //     color: '#b5e1eb',
+    //     padding: 10,
+    //     marginLeft: -3
+    // }
 });
 
 export default RequestPasswordScreen;

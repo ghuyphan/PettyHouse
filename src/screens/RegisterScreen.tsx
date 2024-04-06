@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
-import { TextInput, Button, Icon, HelperText, Snackbar } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, StyleSheet, Text, Image, TouchableOpacity, Keyboard } from 'react-native';
+import { TextInput, Button, HelperText, Snackbar } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import TextDialog from '../components/modal/textDialog';
 import pb from '../services/pocketBase';
-import useNetworkStatus from '../hooks/useNetworkStatus';
 import BackButton from '../components/button/backButton';
-import { validateUsername, validateEmail, validatePassword, validateConfirmPassword } from '../utils/validationHelpers';
+import { validateEmail, validatePassword, validateConfirmPassword } from '../utils/validationHelpers';
 
 
 const RegisterScreen = () => {
     const navigation = useNavigation();
-    const { snackBarVisible, onDismissSnackBar, dismissSnackBar } = useNetworkStatus();
-
     const { t } = useTranslation();
-    const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -50,9 +46,9 @@ const RegisterScreen = () => {
      *
      */
     const validateInputs = async () => {
-        const userNameValidation = validateUsername(userName, t);
-        setUserNameError(!!userNameValidation);
-        setUserNameErrorText(userNameValidation || '');
+        // const userNameValidation = validateUsername(userName, t);
+        // setUserNameError(!!userNameValidation);
+        // setUserNameErrorText(userNameValidation || '');
 
         const emailValidation = validateEmail(email, t);
         setEmailError(!!emailValidation);
@@ -66,7 +62,8 @@ const RegisterScreen = () => {
         setConfirmPasswordError(!!confirmPasswordValidation);
         setConfirmPasswordErrorText(confirmPasswordValidation || '');
 
-        return !userNameValidation && !emailValidation && !passwordValidation && !confirmPasswordValidation;
+        // return !userNameValidation && !emailValidation && !passwordValidation && !confirmPasswordValidation;
+        return !emailValidation && !passwordValidation && !confirmPasswordValidation;
     };
 
     /**
@@ -81,9 +78,10 @@ const RegisterScreen = () => {
             return;
         }
         try {
+            Keyboard.dismiss();
             setIsLoading(true);
             await pb.collection('users').create({
-                username: userName, // Changed to username 
+                // username: userName, // Changed to username 
                 email,
                 password,
                 passwordConfirm: confirmPassword
@@ -125,7 +123,7 @@ const RegisterScreen = () => {
             >
                 <View style={styles.topContainer}>
                     <View style={styles.topMenuContainer}>
-                    <BackButton onPress={() => navigation.navigate('Login' as never)} />
+                        <BackButton onPress={() => navigation.navigate('Login' as never)} />
                         <Text style={styles.registerText}>{t('createAccount')}</Text>
                     </View>
                     <Image source={require('../../assets/images/dogSit.png')} style={styles.dogImage} />
@@ -133,7 +131,7 @@ const RegisterScreen = () => {
 
                 <View style={styles.bottomContainer}>
                     <View style={styles.inputContainer}>
-                        <TextInput
+                        {/* <TextInput
                             mode='outlined'
                             style={styles.input}
                             label={t('userName')}
@@ -149,12 +147,13 @@ const RegisterScreen = () => {
                             }}
                             error={userNameError}
                         />
-                        <HelperText type="error" visible={userNameError} style={{ marginTop: -5 }}>{userNameErrorText}</HelperText>
+                        <HelperText type="error" visible={userNameError} style={{ marginTop: -5 }}>{userNameErrorText}</HelperText> */}
                         <TextInput
                             mode='outlined'
                             style={styles.input}
                             label={t('email')}
                             left={<TextInput.Icon icon="email" color="#b5e1eb" />}
+                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
                             value={email}
                             onChangeText={setEmail}
                             outlineColor='#ccc'
@@ -210,8 +209,9 @@ const RegisterScreen = () => {
                     <Button
                         mode="contained"
                         onPress={handleRegister}
-                        style={{ marginTop: 20 }}
+                        style={{ marginTop: 20, marginBottom: 50 }}
                         labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+                        
                         disabled={isLoading}
                         loading={isLoading}
                     >
@@ -237,20 +237,6 @@ const RegisterScreen = () => {
                 title={isSuccess ? t('registrationSuccess') : t('registrationError')}
                 content={message}
             />
-            <Snackbar
-                visible={snackBarVisible}
-                onDismiss={onDismissSnackBar}
-                duration={1000000000000000}
-                action={{
-                    label: t('close'),
-                    labelStyle: { color: '#b5e1eb' },
-                    onPress: () => {
-                        dismissSnackBar();
-                    }
-                }}
-            >
-                {t('noInternet')}
-            </Snackbar>
         </KeyboardAwareScrollView>
     );
 };
@@ -289,10 +275,10 @@ const styles = StyleSheet.create({
     },
     dogImage: {
         position: 'absolute',
-        top: 110,
-        right: 5,
-        width: 200,
-        height: 170,
+        top: 100,
+        right: 0,
+        width: 180,
+        height: 200,
     },
     bottomContainer: {
         flex: 1,

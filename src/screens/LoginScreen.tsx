@@ -1,29 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
-import { TextInput, Button, Icon, Menu, HelperText, Snackbar } from 'react-native-paper';
+import { View, StyleSheet, Text, Image, TouchableOpacity, Keyboard } from 'react-native';
+import { TextInput, Button, Icon, Menu, HelperText } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 import { saveEmail } from '../reducers/authSlice';
+import { saveUserData } from '../reducers/userSlice';
+import * as SecureStore from 'expo-secure-store';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import CountryFlag from "react-native-country-flag";
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
+
 import i18n from '../utils/i18n';
 import TextDialog from '../components/modal/textDialog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useNetworkStatus from '../hooks/useNetworkStatus';
 import pb from '../services/pocketBase';
+import { validateEmail } from '../utils/validationHelpers';
+
+interface UserData {
+    id: string;
+    username: string;
+    email: string;
+    emailVisibility: boolean;
+    verified: boolean;
+    name: string;
+}
 
 const LoginScreen = () => {
     const navigation = useNavigation();
     const { t } = useTranslation();
-    const { snackBarVisible, onDismissSnackBar, dismissSnackBar } = useNetworkStatus();
 
     const dispatch = useDispatch();
-    const [user, setuser] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showDialog, setShowDialog] = useState(false);
-    const [userError, setuserError] = useState(false);
+    const [emailError, setEmailError] = useState(false);
+    const [emailErrorText, setEmailErrorText] = useState('');
     const [passwordError, setPasswordError] = useState(false);
 
     //Text dialog
@@ -70,36 +82,60 @@ const LoginScreen = () => {
      *
      */
     const validateInputsLogin = () => {
-        const userValid = user.trim() !== '' && user.length >= 3;
-        setuserError(!userValid);
+        const emailValid = email.trim() !== '' && email.length >= 3;
+        setEmailError(!emailValid);
 
         const passwordValid = password.trim() !== '' && password.length >= 8;
         setPasswordError(!passwordValid);
 
-        return userValid && passwordValid;
+        return emailValid && passwordValid;
     }
-    const validateuser = () => {
-        const userValid = user.trim() !== '';
-        setuserError(!userValid);
-        return userValid;
+    const validateEmailInput = () => {
+        const emailValid = validateEmail(email, t);
+        setEmailError(!!emailValid);
+        setEmailErrorText(emailValid || '');
+        return emailValid;
+
     };
 
     const validatePassword = () => {
         const passwordValid = password.trim() !== '' && password.length >= 8;
-        console.log(password.length);
-        console.log(passwordValid);
         setPasswordError(!passwordValid);
         return passwordValid;
     };
+    const mapRecordModelToUserData = (record: any): UserData => {
+        return {
+            id: record.id,
+            username: record.username || '', // Extract 'username', provide a default
+            email: record.email || '',      // Extract 'email', provide a default
+            emailVisibility: record.emailVisibility || false,
+            verified: record.verified || false,
+            name: record.name || '',
+        };
+    };
+
     const handleLogin = async () => {
         if (!validateInputsLogin()) {
             return;
         }
         try {
             setIsLoading(true);
-            const userExists = await pb.collection("users").getFirstListItem(`username="${user}"`);
-            const authData = await pb.collection('users').authWithPassword(user, password);
-            console.log("Login successful, token:", authData.token);
+            Keyboard.dismiss();
+            const authData = await pb.collection('users').authWithPassword(email, password);
+            if (!authData.token) {
+                throw new Error('Authentication error: Token not received');
+            }
+            if (authData.token) {
+                // Save token to secure storage
+
+                await SecureStore.setItemAsync('authToken', authData.token);
+            }
+            // Fetch user data
+            // TODO: Add error handling
+            const userRecord = await pb.collection('users').getOne(authData.record.id);
+            const userData = mapRecordModelToUserData(userRecord);
+            dispatch(saveUserData(userData));
+            navigation.navigate('BottomNav' as never);
             setIsLoading(false);
         } catch (error) {
             const errorData: { status: number; message: string } = error as { status: number; message: string };
@@ -108,7 +144,7 @@ const LoginScreen = () => {
                 case 400:
                     setShowDialog(true);
                     setMessage(t('invalidCredentials'));
-                    dispatch(saveEmail(user));
+                    dispatch(saveEmail(email));
                     break;
                 case 404:
                     setShowDialog(true);
@@ -146,8 +182,6 @@ const LoginScreen = () => {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.container}
             enableAutomaticScroll={true}
-            extraHeight={130}
-            extraScrollHeight={130}
         >
             <View
                 style={{ flexGrow: 1, backgroundColor: '#b5e1eb' }}
@@ -158,8 +192,6 @@ const LoginScreen = () => {
                             <Menu
                                 visible={visible}
                                 onDismiss={closeMenu}
-                                contentStyle={{ backgroundColor: '#f0f9fc' }}
-
                                 anchor={
                                     <TouchableOpacity style={styles.languageButton} onPress={openMenu} >
                                         <CountryFlag
@@ -191,18 +223,18 @@ const LoginScreen = () => {
                         <TextInput
                             mode='outlined'
                             style={styles.input}
-                            label={t('userName')}
+                            label={t('email')}
                             left={<TextInput.Icon icon="account" color="#b5e1eb" />}
-                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setuser('')} />}
-                            value={user}
-                            onChangeText={setuser}
+                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
+                            value={email}
+                            onChangeText={setEmail}
                             outlineColor='#ccc'
                             maxLength={30}
-                            onBlur={validateuser}
-                            error={userError}
+                            onBlur={validateEmailInput}
+                            error={emailError}
 
                         />
-                        <HelperText type="error" visible={userError} style={{ marginTop: -5 }}>{t('usernameMinLength')}</HelperText>
+                        <HelperText type="error" visible={emailError} style={{ marginTop: -5 }}>{emailErrorText}</HelperText>
                         <TextInput
                             mode='outlined'
                             style={{ ...styles.input }}
@@ -233,10 +265,11 @@ const LoginScreen = () => {
                         mode="contained"
                         onPress={handleLogin}
                         labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+                        style={{ marginBottom: 50 }}
                         loading={isLoading}
                         disabled={isLoading}
                     >
-                        {!isLoading ? t('singin') : t('signingIn')}
+                        {!isLoading ? t('signin') : t('signingIn')}
                     </Button>
                     <View
                         style={styles.signUpContainer}
@@ -258,21 +291,6 @@ const LoginScreen = () => {
                 title={t('loginError')}
                 content={message}
             />
-            <Snackbar
-                visible={snackBarVisible}
-                onDismiss={onDismissSnackBar}
-                duration={1000000000000000}
-                action={{
-                    label: t('close'),
-                    labelStyle: { color: '#b5e1eb' },
-                    onPress: () => {
-
-                        dismissSnackBar();
-                    }
-                }}
-            >
-                {t('noInternet')}
-            </Snackbar>
         </KeyboardAwareScrollView>
     );
 };
@@ -311,10 +329,10 @@ const styles = StyleSheet.create({
     },
     dogImage: {
         position: 'absolute',
-        top: 130,
-        right: 10,
-        width: 160,
-        height: 150,
+        top: 100,
+        right: 0,
+        width: 180,
+        height: 200,
     },
     bottomContainer: {
         flex: 1,
@@ -330,7 +348,6 @@ const styles = StyleSheet.create({
         width: '100%',
         // marginBottom: 5,
         // marginTop: 5,
-        backgroundColor: '#fff',
     },
     forgotPasswordContainer: {
         width: '100%',

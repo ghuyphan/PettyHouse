@@ -18,7 +18,8 @@ const validateUsername = (userName: string, t: any): string | null => {
 const validateEmail = (email: string, t: any): string | null => {
     const emailSchema = yup.string()
         .email(t('invalidEmail'))
-        .required(t('emailRequired'));
+        .required(t('emailRequired'))
+        .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, t('invalidEmail'));
 
     try {
         emailSchema.validateSync(email);

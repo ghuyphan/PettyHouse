@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
-import { Button, Dialog, Portal, DefaultTheme, Text } from 'react-native-paper';
+import { Button, Dialog, Portal, Text } from 'react-native-paper';
 
 interface textDialogProps {
   
@@ -10,6 +10,7 @@ interface textDialogProps {
     content: React.ReactNode; // Allows for various content types 
     icon: string;
     confirmLabel?: string; // Optional confirmation label
+    dismissable?: boolean;
 }
 
 const TextDialog: React.FC<textDialogProps> = ({ 
@@ -19,10 +20,11 @@ const TextDialog: React.FC<textDialogProps> = ({
     content, 
     icon,
     confirmLabel = "Ok",
+    dismissable = true,
 }) => {
   return (
         <Portal>
-          <Dialog visible={isVisible} onDismiss={onDismiss} style={{ backgroundColor: '#f0f9fc' }}>
+          <Dialog visible={isVisible} onDismiss={onDismiss} style={{ backgroundColor: '#f0f9fc' }} dismissable={dismissable}>
           <Dialog.Icon icon={icon} />
             <Dialog.Title style={styles.title}>{title}</Dialog.Title>
             <Dialog.Content>
