@@ -10,13 +10,12 @@ import {
   MD3LightTheme as DefaultTheme,
   PaperProvider,
   Snackbar,
+  ActivityIndicator,
 } from 'react-native-paper';
 import pb from './src/services/pocketBase'; // Your PocketBase setup
 import { checkInitialAuth } from './src/utils/authUtils';
 import useNetworkStatus from './src/hooks/useNetworkStatus';
 import { useTranslation } from 'react-i18next';
-import { useDispatch } from 'react-redux';
-
 SplashScreen.preventAutoHideAsync().catch(/* ... */);
 
 // Your theme definition
@@ -43,7 +42,7 @@ export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const { snackBarVisible, onDismissSnackBar, dismissSnackBar } = useNetworkStatus();
   const { t } = useTranslation();
-  
+
   useEffect(() => {
     const init = async () => {
       await checkInitialAuth();
@@ -58,6 +57,7 @@ export default function App() {
     return (
       <View style={styles.splashContainer}>
         <Image source={require('./assets/splash.png')} style={styles.splashImage} />
+        <ActivityIndicator size="small" color="#8ac5db" style={{position: 'absolute', bottom: 100}} />
       </View>
     );
   }
@@ -70,22 +70,23 @@ export default function App() {
           <StatusBar style="auto" />
         </NavigationContainer>
         <Snackbar
-                visible={snackBarVisible}
-                onDismiss={onDismissSnackBar}
-                duration={1000000000000000}
-                style={{ backgroundColor: '#f0f9fc' }}
-                theme={{ colors: { primary: '#b5e1eb', inverseOnSurface: '#000000' } }}
-                action={{
-                    label: t('close'),
-                    labelStyle: { color: '#b5e1eb' },
-                    onPress: () => {
-                        dismissSnackBar();
-                    },
-                    rippleColor: '#b5e1eb',
-                }}
-            >
-                {t('noInternet')}
-            </Snackbar>
+          visible={snackBarVisible}
+          onDismiss={onDismissSnackBar}
+          duration={1000000000000000}
+          wrapperStyle={{ bottom: 10 }}
+          // style={{ backgroundColor: '#f0f9fc' }}
+          // theme={{ colors: { primary: '#b5e1eb', inverseOnSurface: '#000000' } }}
+          action={{
+            label: t('close'),
+            labelStyle: { color: '#b5e1eb' },
+            onPress: () => {
+              dismissSnackBar();
+            },
+            rippleColor: '#b5e1eb',
+          }}
+        >
+          {t('noInternet')}
+        </Snackbar>
       </PaperProvider>
     </Provider>
   );
@@ -94,12 +95,12 @@ export default function App() {
 const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
-    backgroundColor: '#000000',  
+    backgroundColor: '#f0f9fc',
     alignItems: 'center',
     justifyContent: 'center',
   },
   splashImage: {
-    width: 390, // Adjust if needed
-    height: 350, // Adjust if needed
+    width: 410, // Adjust if needed
+    height: 410, // Adjust if needed
   }
 });

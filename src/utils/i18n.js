@@ -54,6 +54,10 @@ i18n.use(initReactI18next).init({
         emailSentError: 'Error sending email',
         emailSentErrorMessage: 'An error occurred while sending the email. Please try again',
         searchPlaceholder: 'Search',
+        locationPermissionTitle: 'Petty House needs access to your location',
+        locationPermissionContent: 'Your location is used to show your location on the map and needed to find pets in your area.',
+        locationPermissionButton: 'Continue',
+        explore: 'Explore',
       },
     },
     vi: {
@@ -104,6 +108,10 @@ i18n.use(initReactI18next).init({
         emailSentError: 'Gửi mail không thành công',
         emailSentErrorMessage: 'Có lỗi xảy ra, vui lòng thử lại sau.',
         searchPlaceholder: 'Tìm kiếm',
+        locationPermissionTitle: 'Petty House cần quyền truy cập vào vị tri',
+        locationPermissionContent: 'Vị trí của bạn được sử dụng để hiển thị vị trí của bạn trên bản đồ và cần thiết để tìm thú cưng trong khu vực của bạn.',
+        locationPermissionButton: 'Tiếp tục',
+        explore: 'Khám phá',
       },
     },
     // Add more languages as needed

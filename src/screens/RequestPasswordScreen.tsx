@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image, Keyboard } from 'react-native';
-import { TextInput, Button, Icon, HelperText, Snackbar, Banner } from 'react-native-paper';
+import { View, StyleSheet, Image, Keyboard } from 'react-native';
+import { TextInput, Button, Icon, HelperText, Text, Banner } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import TextDialog from '../components/modal/textDialog';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/rootReducer';
 import pb from '../services/pocketBase';
-import { validateEmail } from '../utils/validationHelpers';
+import { validateEmail } from '../utils/validationUtils';
 import BackButton from '../components/button/backButton';
 
 const RequestPasswordScreen = () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, Keyboard } from 'react-native';
-import { TextInput, Button, Icon, Menu, HelperText } from 'react-native-paper';
+import { View, StyleSheet, Image, TouchableOpacity, Keyboard } from 'react-native';
+import { TextInput, Button, Icon, Menu, HelperText, Text } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 import { saveEmail } from '../reducers/authSlice';
 import { saveUserData } from '../reducers/userSlice';
@@ -14,7 +14,7 @@ import i18n from '../utils/i18n';
 import TextDialog from '../components/modal/textDialog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import pb from '../services/pocketBase';
-import { validateEmail } from '../utils/validationHelpers';
+import { validateEmail } from '../utils/validationUtils';
 
 interface UserData {
     id: string;
@@ -131,7 +131,6 @@ const LoginScreen = () => {
                 await SecureStore.setItemAsync('authToken', authData.token);
             }
             // Fetch user data
-            // TODO: Add error handling
             const userRecord = await pb.collection('users').getOne(authData.record.id);
             const userData = mapRecordModelToUserData(userRecord);
             dispatch(saveUserData(userData));

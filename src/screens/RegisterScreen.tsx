@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, Keyboard } from 'react-native';
-import { TextInput, Button, HelperText, Snackbar } from 'react-native-paper';
+import { View, StyleSheet, Image, TouchableOpacity, Keyboard } from 'react-native';
+import { TextInput, Button, HelperText, Text } from 'react-native-paper';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import TextDialog from '../components/modal/textDialog';
 import pb from '../services/pocketBase';
 import BackButton from '../components/button/backButton';
-import { validateEmail, validatePassword, validateConfirmPassword } from '../utils/validationHelpers';
+import { validateEmail, validatePassword, validateConfirmPassword } from '../utils/validationUtils';
 
 
 const RegisterScreen = () => {
@@ -82,8 +82,8 @@ const RegisterScreen = () => {
             setIsLoading(true);
             await pb.collection('users').create({
                 // username: userName, // Changed to username 
-                email,
-                password,
+                email: email,
+                password: password,
                 passwordConfirm: confirmPassword
             });
             // Successful registration
