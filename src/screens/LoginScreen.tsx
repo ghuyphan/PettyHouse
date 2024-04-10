@@ -157,6 +157,7 @@ const LoginScreen = () => {
                     setShowDialog(true);
                     setMessage(t('noAccountFound'));
                     break;
+                
             }
         }
         setIsLoading(false);
@@ -369,11 +370,11 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     signUpText: {
-        fontSize: 15,
+        fontSize: 14,
         paddingBottom: 10,
     },
     signUpButton: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#b5e1eb',
         padding: 10,

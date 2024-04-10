@@ -208,11 +208,12 @@ const RegisterScreen = () => {
                 </View>
             </View>
             <TextDialog
-                icon={isSuccess ? "check-circle" : "alert-outline"}
+                icon={isSuccess ? "check-circle-outline" : "alert-outline"}
                 isVisible={showDialog}
                 onDismiss={onDismissDialog}
                 title={isSuccess ? t('registrationSuccess') : t('registrationError')}
                 content={message}
+                confirmLabel={t('forgotPasswordButton')}
             />
         </KeyboardAwareScrollView>
     );
@@ -279,11 +280,11 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     signInText: {
-        fontSize: 15,
+        fontSize: 14,
         paddingBottom: 10,
     },
     signInButton: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#b5e1eb',
         padding: 10,
