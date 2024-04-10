@@ -21,6 +21,7 @@ const TextDialog: React.FC<textDialogProps> = ({
     icon,
     confirmLabel = "Ok",
     dismissable = true,
+    
 }) => {
   return (
         <Portal>

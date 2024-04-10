@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import CountryFlag from "react-native-country-flag";
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 
 import i18n from '../utils/i18n';
 import TextDialog from '../components/modal/textDialog';
@@ -115,12 +115,12 @@ const LoginScreen = () => {
     };
 
     const handleLogin = async () => {
+        Keyboard.dismiss();
         if (!validateInputsLogin()) {
             return;
         }
         try {
             setIsLoading(true);
-            Keyboard.dismiss();
             const authData = await pb.collection('users').authWithPassword(email, password);
             if (!authData.token) {
                 throw new Error('Authentication error: Token not received');
@@ -134,7 +134,15 @@ const LoginScreen = () => {
             const userRecord = await pb.collection('users').getOne(authData.record.id);
             const userData = mapRecordModelToUserData(userRecord);
             dispatch(saveUserData(userData));
+            setEmail('');
+            setPassword('');
             navigation.navigate('BottomNav' as never);
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Home' }],
+                })
+            );
             setIsLoading(false);
         } catch (error) {
             const errorData: { status: number; message: string } = error as { status: number; message: string };
@@ -181,6 +189,7 @@ const LoginScreen = () => {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.container}
             enableAutomaticScroll={true}
+            extraScrollHeight={40}
         >
             <View
                 style={{ flexGrow: 1, backgroundColor: '#b5e1eb' }}
@@ -324,7 +333,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderTopRightRadius: 20,
         borderBottomRightRadius: 20,
-        bottom: 30,
+        bottom: 50,
     },
     dogImage: {
         position: 'absolute',

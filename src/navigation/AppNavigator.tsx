@@ -3,7 +3,7 @@ import { createStackNavigator, CardStyleInterpolators } from "@react-navigation/
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import RequestPasswordScreen from "../screens/RequestPasswordScreen";
-import BottomNav from "../components/bottomNav/bottomNav";
+import BottomNav from "./bottomNav/bottomNav";
 
 const Stack = createStackNavigator();
 

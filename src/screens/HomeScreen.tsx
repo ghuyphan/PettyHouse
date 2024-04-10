@@ -1,28 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, BackHandler, Dimensions } from 'react-native';
-import { Searchbar, FAB } from 'react-native-paper';
-import MapView, { Marker } from 'react-native-maps';
+import { StyleSheet, View, BackHandler, ToastAndroid } from 'react-native';
+import { Button, FAB, Text, ActivityIndicator } from 'react-native-paper';
+import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
+import * as SecureStore from 'expo-secure-store';
 import { useSelector } from 'react-redux';
+
+//Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
 import TextDialog from '../components/modal/textDialog'; // Adjust the path if needed
-import * as SecureStore from 'expo-secure-store';
-
+import LoadingDialog from '../components/modal/loadingDialog';
+import CustomMarker from '../components/marker/marker';
 import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
 import { getDistanceFromLatLonInKm, calculateBoundingBox } from '../utils/distanceUtils';
+import SearchbarComponent from '../components/searchBar/searchBar';
 
-const windowHeight = Dimensions.get('window').height;
-interface Marker {
-    coordinate: {
-        latitude: number;
-        longitude: number;
-    };
-    title: string;
-}
+//Type import
+import TypeMarker from '../types/markers';
+import TypeCirlce from '../types/mapCircle';
+import LoadingContainer from '../components/modal/loadingDialog';
 
 const HomeScreen = () => {
-    const searchbarTop = windowHeight * 0.07;
     const [region, setRegion] = useState({
         latitude: 37.78825,
         longitude: -122.4324,
@@ -32,11 +31,14 @@ const HomeScreen = () => {
     let lastClickTime = 0;
 
     const { t } = useTranslation();
-    const [searchQuery, setSearchQuery] = React.useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [circleProps, setCircleProps] = useState<TypeCirlce | null>(null);
     const userData = useSelector((state: RootState) => state.user.userData);
-    const [isVisible, setIsVisible] = React.useState(false);
+    const [isVisible, setIsVisible] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const mapRef = useRef<MapView>(null);
-    const [markers, setMarkers] = useState<Marker[]>([]);
+    const [markers, setMarkers] = useState<TypeMarker[]>([]);
+
 
     const requestLocationPermission = async () => {
         setIsVisible(false);
@@ -45,14 +47,25 @@ const HomeScreen = () => {
 
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            console.log('Permission to access location was denied');
-        } else if (timeSinceLastClick >= 1500) {
+            ToastAndroid.show('Permission to access location was denied', ToastAndroid.SHORT);
+            return;
+        } else if (timeSinceLastClick >= 2000) {
             const location = await Location.getCurrentPositionAsync({});
-            await SecureStore.setItemAsync('lastLocation', location.coords.latitude + ',' + location.coords.longitude);
-            const lastLocation = await SecureStore.getItemAsync('lastLocation');
-            console.log(lastLocation);
+            await SecureStore.setItemAsync('lastLocation', JSON.stringify({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            }));
+            // const lastLocation = await SecureStore.getItemAsync('lastLocation');
+            setCircleProps({
+                center: {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                },
+                radius: 1000,
+            });
+
             lastClickTime = currentTime;
-            fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 10);
+            fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 1);
             mapRef.current?.animateCamera({
                 center: {
                     latitude: location.coords.latitude,
@@ -61,8 +74,8 @@ const HomeScreen = () => {
                 pitch: 2, // Optional: Set the pitch angle
                 heading: 20, // Optional: Set the heading angle
                 altitude: 200, // Optional: Set the altitude
-                zoom: 17, // Optional: Set the zoom level
-            }, { duration: 1500 }); // Specify the duration of the animation in milliseconds
+                zoom: 16, // Optional: Set the zoom level
+            }, { duration: 1300 }); // Specify the duration of the animation in milliseconds
         }
     };
 
@@ -78,6 +91,8 @@ const HomeScreen = () => {
     }
 
     const fetchRecordsWithinRadius = async function (centerLat: number, centerLon: number, radius: number) {
+        // Create a bounding box around the center point
+        setIsLoading(true);
         const boundingBox = calculateBoundingBox(centerLat, centerLon, radius);
 
         // Query to fetch records within the bounding box
@@ -92,40 +107,59 @@ const HomeScreen = () => {
             );
             return distance <= radius;
         });
-
         const newMarkers = filteredRecords.map(record => ({
             coordinate: {
                 latitude: record.latitude,
                 longitude: record.longitude
             },
             title: record.text, // Assuming you have a 'title' field
+            image: constructImageURL(record.image, record.id),
         }));
         setMarkers(newMarkers);
+        setIsLoading(false);
+    }
+    const constructImageURL = (image: string, record: string) => {
+        const baseURL = 'https://petty-house.pockethost.io/api/files/';
+        const collectionId = 'fbj6nkb0oiiajw3'; // Replace with your actual collection ID
+        const recordId = record; // Assuming your record has an 'id' field
+        const fileName = image;
+
+        return `${baseURL}${collectionId}/${recordId}/${fileName}`;
     }
 
     useEffect(() => {
-        const attemptInitialLocationFetch = async () => {
-            try {
-                let { status } = await Location.getForegroundPermissionsAsync();
+        // const attemptInitialLocationFetch = async () => {
+        //     try {
+        //         let { status } = await Location.getForegroundPermissionsAsync();
 
-                if (status === 'granted') {
-                    const location = await Location.getCurrentPositionAsync({});
-                    fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 10);
-                } else {
-                    // Handle case where permission is not granted initially
-                    // You might want to display a message to the user
-                    console.log('Location permission not granted'); 
-                }
-            } catch (error) {
-                console.error('Error fetching location:', error);
-                // Handle errors appropriately, e.g., display an error message to the user
-            }
-        };
+        //         if (status === 'granted') {
+        //             const location = await Location.getCurrentPositionAsync({});
+        //             fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 10);
+        //         } else {
+        //             // Handle case where permission is not granted initially
+        //             // You might want to display a message to the user
+        //             console.log('Location permission not granted');
+        //         }
+        //     } catch (error) {
+        //         console.error('Error fetching location:', error);
+
+        //     }
+        //     const lastLocationString = await SecureStore.getItemAsync('lastLocation');
+        //     if (lastLocationString) {
+        //         const lastLocation = JSON.parse(lastLocationString);
+        //         setRegion({
+        //             ...region,
+        //             latitude: lastLocation.latitude,
+        //             longitude: lastLocation.longitude
+        //         });
+        //         console.log(lastLocation);
+        //     } 
+        // };
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             return true;
         });
 
-        attemptInitialLocationFetch();  
+        // attemptInitialLocationFetch();
         return () => backHandler.remove();
     }, []);
 
@@ -142,23 +176,22 @@ const HomeScreen = () => {
                 showsMyLocationButton={false}
                 showsBuildings={false}
             >
+
                 {markers.map((marker, index) => (
-                    <Marker
-                        key={index}
-                        coordinate={marker.coordinate}
-                        title="My Marker"
-                        description={marker.title}
-                    />
+                    <CustomMarker key={index} marker={marker} index={index} />
                 ))}
+                {circleProps && (
+                    <Circle
+                        center={circleProps.center}
+                        radius={circleProps.radius}
+                        strokeColor="#8ac5db"  // Your app's primary color 
+                        fillColor="rgba(138, 197, 219, 0.2)"
+                    />
+                )}
+
             </MapView>
-            <Searchbar
-                placeholder={t('searchPlaceholder')}
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                iconColor='#b5e1eb'
-                selectionColor={'#b5e1eb'}
-                style={{ position: 'absolute', top: searchbarTop, left: 10, right: 10 }}
-            />
+
+            <SearchbarComponent onSearchUpdate={setSearchQuery} />
             <FAB
                 style={{ position: 'absolute', bottom: 120, right: 20, borderRadius: 50 }}
                 icon="crosshairs-gps"
@@ -184,6 +217,17 @@ const HomeScreen = () => {
                 content={t('locationPermissionContent')}
                 confirmLabel={t('locationPermissionButton')}
             />
+            {isLoading && <View style={styles.loadingContainer}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 10, backgroundColor: '#f0f9fc', borderRadius: 50 }}>
+                    <ActivityIndicator>
+
+                    </ActivityIndicator>
+                    <Text>
+                        Finding nearby pets...
+                    </Text>
+                </View>
+            </View>}
+
         </View>
     );
 };
@@ -194,6 +238,14 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1
+    },
+    loadingContainer: {
+        position: 'absolute',
+        bottom: 30,
+        left: 10,
+        right: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     }
 });
 

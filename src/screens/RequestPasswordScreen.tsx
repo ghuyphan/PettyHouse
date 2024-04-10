@@ -89,9 +89,8 @@ const RequestPasswordScreen = () => {
         <KeyboardAwareScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.container}
-            extraHeight={500}
-            extraScrollHeight={500}
-            scrollEnabled={true} enableAutomaticScroll={true}
+            extraScrollHeight={40}
+            scrollEnabled={true}
         >
             <View
                 style={{ flexGrow: 1, backgroundColor: '#b5e1eb' }}
@@ -150,17 +149,6 @@ const RequestPasswordScreen = () => {
                     >
                         {!isLoading ? t('forgotPasswordButton') : t('forgotPasswordButtonProcessing')}
                     </Button>
-                    {/* <View
-                        style={styles.signUpContainer}
-                    >
-                        <Text style={styles.signUpText}>{t('donnotHaveAccount')}</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
-                            <Text
-                                style={styles.signUpButton}
-                            >
-                                {t('signupNow')}</Text>
-                        </TouchableOpacity>
-                    </View> */}
                 </View>
             </View>
             <TextDialog
@@ -229,24 +217,6 @@ const styles = StyleSheet.create({
         // marginTop: 5,
         backgroundColor: '#fff',
     },
-    // signUpContainer: {
-    //     flex: 1,
-    //     flexDirection: 'row',
-    //     alignItems: 'flex-end',
-    //     justifyContent: 'center',
-    //     marginBottom: 10
-    // },
-    // signUpText: {
-    //     fontSize: 15,
-    //     paddingBottom: 10,
-    // },
-    // signUpButton: {
-    //     fontSize: 15,
-    //     fontWeight: 'bold',
-    //     color: '#b5e1eb',
-    //     padding: 10,
-    //     marginLeft: -3
-    // }
 });
 
 export default RequestPasswordScreen;

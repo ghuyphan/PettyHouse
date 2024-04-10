@@ -5,8 +5,10 @@ import { CommonActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, BottomNavigation } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import HomeScreen from '../../screens/HomeScreen';
 import { useTranslation } from 'react-i18next';
+
+import HomeScreen from '../../screens/HomeScreen';
+import SettingScreen from '../../screens/SettingScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -15,12 +17,12 @@ export default function BottomNav() {
 
     return (
         <Tab.Navigator
+            initialRouteName='Home'
             screenOptions={{
                 headerShown: false,
             }}
             tabBar={({ navigation, state, descriptors, insets }) => (
                 <BottomNavigation.Bar
-                    shifting
                     navigationState={state}
                     safeAreaInsets={insets}
                     theme={{ colors: { primary: '#FFFF', secondaryContainer: '#d2edf7' } }}
@@ -55,9 +57,8 @@ export default function BottomNav() {
                             options.tabBarLabel !== undefined
                                 ? options.tabBarLabel
                                 : options.title !== undefined
-                                    ? options.title
+                                    ? options.title   
                                     : route.title;
-
                         return label;
                     }}
                 />
@@ -98,23 +99,23 @@ export default function BottomNav() {
                     tabBarLabel: 'Profile',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
-                            <Icon name="account" size={size} color={color} />
+                            <Icon name="paw" size={size} color={color} />
                         ) : (
-                            <Icon name="account-outline" size={size} color={color} />
+                            <Icon name="paw-outline" size={size} color={color} />
                         );
                     },
                 }}
             />
             <Tab.Screen
                 name="Settings"
-                component={SettingsScreen}
+                component={SettingScreen}
                 options={{
                     tabBarLabel: 'Settings',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
-                            <Icon name="cog" size={size} color={color} />
+                            <Icon name="account" size={size} color={color} />
                         ) : (
-                            <Icon name="cog-outline" size={size} color={color} />
+                            <Icon name="account-outline" size={size} color={color} />
                         );
                     },
                 }}

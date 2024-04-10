@@ -26,7 +26,6 @@ const RegisterScreen = () => {
     const [emailError, setEmailError] = useState(false);
     const [passwordError, setPasswordError] = useState(false);
     const [confirmPasswordError, setConfirmPasswordError] = useState(false);
-    const [userNameErrorText, setUserNameErrorText] = useState('');
     const [emailErrorText, setEmailErrorText] = useState('');
     const [passwordErrorText, setPasswordErrorText] = useState('');
     const [confirmPasswordErrorText, setConfirmPasswordErrorText] = useState('');
@@ -46,9 +45,6 @@ const RegisterScreen = () => {
      *
      */
     const validateInputs = async () => {
-        // const userNameValidation = validateUsername(userName, t);
-        // setUserNameError(!!userNameValidation);
-        // setUserNameErrorText(userNameValidation || '');
 
         const emailValidation = validateEmail(email, t);
         setEmailError(!!emailValidation);
@@ -81,7 +77,6 @@ const RegisterScreen = () => {
             Keyboard.dismiss();
             setIsLoading(true);
             await pb.collection('users').create({
-                // username: userName, // Changed to username 
                 email: email,
                 password: password,
                 passwordConfirm: confirmPassword
@@ -114,9 +109,8 @@ const RegisterScreen = () => {
         <KeyboardAwareScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.container}
-            extraHeight={500}
-            extraScrollHeight={500}
-            scrollEnabled={true} enableAutomaticScroll={true}
+            extraHeight={40}
+            scrollEnabled={true}
         >
             <View
                 style={{ flexGrow: 1, backgroundColor: '#b5e1eb' }}
@@ -131,23 +125,6 @@ const RegisterScreen = () => {
 
                 <View style={styles.bottomContainer}>
                     <View style={styles.inputContainer}>
-                        {/* <TextInput
-                            mode='outlined'
-                            style={styles.input}
-                            label={t('userName')}
-                            left={<TextInput.Icon icon="account" color="#b5e1eb" />}
-                            value={userName}
-                            onChangeText={setUserName}
-                            outlineColor='#ccc'
-                            maxLength={30}
-                            onBlur={() => {
-                                const error = validateUsername(userName, t);
-                                setUserNameError(!!error);
-                                setUserNameErrorText(error || '');
-                            }}
-                            error={userNameError}
-                        />
-                        <HelperText type="error" visible={userNameError} style={{ marginTop: -5 }}>{userNameErrorText}</HelperText> */}
                         <TextInput
                             mode='outlined'
                             style={styles.input}
@@ -277,8 +254,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 100,
         right: 0,
-        width: 180,
-        height: 200,
+        width: 160,
+        height: 180,
     },
     bottomContainer: {
         flex: 1,
@@ -292,8 +269,6 @@ const styles = StyleSheet.create({
     },
     input: {
         width: '100%',
-        // marginBottom: 5,
-        // marginTop: 5,
         backgroundColor: '#fff',
     },
     signInContainer: {
