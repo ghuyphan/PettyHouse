@@ -48,10 +48,12 @@ const HomeScreen = () => {
     const lastFetchTime = useRef(0); // Store timestamp of last fetch (pet fab)
     const lastClickTime = useRef(0); // Store timestamp of last click (location fab)
 
+    const [zoomLevel, setZoomLevel] = useState(15);
+
     //Bottom sheet
     const bottomSheetRef = useRef<BottomSheet>(null);
     //Animation
-    const containerPosition = useSharedValue(-500);
+    const containerPosition = useSharedValue(0);
     const containerScale = useSharedValue(0.1);
     const animatedLoadingStyle = useAnimatedStyle(() => {
         return {
@@ -84,7 +86,7 @@ const HomeScreen = () => {
     const handleLocation = useCallback(async () => {
         const currentTime = Date.now();
         const timeSinceLastClick = currentTime - lastClickTime.current;
-        const threshold = 1200; // 1.2 seconds minimum between location updates
+        const threshold = 500; // 500 milliseconds minimum between location updates
 
         const { status } = await Location.getForegroundPermissionsAsync();
 
@@ -105,17 +107,18 @@ const HomeScreen = () => {
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,
                 },
-                zoom: 15
-            }, { duration: 800 });
-
+                zoom: 15,
+                heading: 0,
+            }, { duration: 500 });
             lastClickTime.current = currentTime;
         }
-    }, [lastClickTime]); // lastClickTime as the dependency
+    }, [lastClickTime]); // Add zoomLevel to the dependencies
+
 
     const handleFetchingPet = useCallback(async () => {
         const currentTime = Date.now();
         const timeSinceLastFetch = currentTime - lastFetchTime.current;
-        const threshold = 3000; // 3 seconds minimum between fetches
+        const threshold = 2000; // 3 seconds minimum between fetches
 
         if (isLoadingData || timeSinceLastFetch < threshold) {
             return; // Ignore the request if still loading or threshold not met
@@ -124,36 +127,56 @@ const HomeScreen = () => {
         setIsLoadingData(true); // Start loading indicator
 
         try {
-            containerPosition.value = withTiming(80, { duration: 1000, easing: Easing.inOut(Easing.ease) });
-            containerScale.value = withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) });
-            handleLocation();
-            const location = await Location.getCurrentPositionAsync({});
-            const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
+            const { status } = await Location.getForegroundPermissionsAsync();
 
-            const newMarkers = records.map(record => ({
-                coordinate: {
-                    latitude: record.latitude,
-                    longitude: record.longitude
-                },
-                title: record.text,
-                image: constructImageURL(record.image, record.id),
-            }));
-
-            setMarkers(newMarkers);
-            setCircleProps({
-                center: {
+            if (status !== 'granted') {
+                setIsVisible(true);
+                return;
+            } else {
+                containerPosition.value = withTiming(80, { duration: 400, easing: Easing.inOut(Easing.ease) });
+                containerScale.value = withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) });
+                
+                const location = await Location.getCurrentPositionAsync({});
+                await SecureStore.setItemAsync('lastLocation', JSON.stringify({
                     latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                },
-                radius: 2000,
-            });
+                    longitude: location.coords.longitude
+                }));
 
+                mapRef.current?.animateCamera({
+                    center: {
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    },
+                    zoom: 15,
+                    heading: 0,
+                }, { duration: 500 });
+
+                const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
+
+                const newMarkers = records.map(record => ({
+                    coordinate: {
+                        latitude: record.latitude,
+                        longitude: record.longitude
+                    },
+                    title: record.text,
+                    image: constructImageURL(record.image, record.id),
+                }));
+
+                setMarkers(newMarkers);
+                setCircleProps({
+                    center: {
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    },
+                    radius: 2000,
+                });
+            }
         } catch (error) {
             console.error('Error fetching records:', error);
         } finally {
             setTimeout(() => {
-                containerPosition.value = withTiming(-500, { duration: 1000, easing: Easing.inOut(Easing.ease) });
-                containerScale.value = withTiming(0.1, { duration: 500, easing: Easing.inOut(Easing.ease) });
+                containerPosition.value = withTiming(0, { duration: 400, easing: Easing.inOut(Easing.ease) });
+                containerScale.value = withTiming(0.1, { duration: 400, easing: Easing.inOut(Easing.ease) });
             }, 1200);
             setIsLoadingData(false); // Stop loading indicator
             lastFetchTime.current = currentTime;
@@ -187,6 +210,7 @@ const HomeScreen = () => {
         const fetchLastLocation = async () => {
             setIsLoadingRegion(true);
             const lastLocationString = await SecureStore.getItemAsync('lastLocation');
+            console.log(lastLocationString);
             if (lastLocationString) {
                 const lastLocation = JSON.parse(lastLocationString);
                 setRegion({
@@ -252,9 +276,9 @@ const HomeScreen = () => {
             <SearchbarComponent onSearchUpdate={setSearchQuery} />
             <FAB
                 style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
-                icon="crosshairs-gps" // Dynamically change icon
+                icon= 'crosshairs-gps'
                 color={'#8ac5db'}
-                onPress={handleLocation} // Update onPress behavior
+                onPress={handleLocation} 
                 variant='primary'
                 rippleColor={'#b5e1eb'}
             />

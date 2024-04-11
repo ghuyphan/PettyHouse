@@ -6,20 +6,24 @@ interface textDialog2BtnProps {
 
   isVisible: boolean;
   onDismiss: () => void;
+  onConfirm: () => void;
   title: string;
   content: React.ReactNode; // Allows for various content types 
   icon: string;
-  confirmLabel?: string; // Optional confirmation label
+  dismissLabel?: string; // Optional confirmation label
+  confirmLabel?: string;
   dismissable?: boolean;
 }
 
 const TextDialog2Btn: React.FC<textDialog2BtnProps> = ({
   isVisible,
   onDismiss,
+  onConfirm,
   title,
   content,
   icon,
   confirmLabel = "Ok",
+  dismissLabel = "Cancel",
   dismissable = true,
 
 }) => {
@@ -32,8 +36,8 @@ const TextDialog2Btn: React.FC<textDialog2BtnProps> = ({
           <Text style={{ fontSize: 16 }}>{content}</Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold' }}>Cancel</Button>
-          <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold' }}>{confirmLabel}</Button>
+          <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold' }}>{dismissLabel}</Button>
+          <Button onPress={onConfirm} labelStyle={{ fontSize: 16, fontWeight: 'bold' }}>{confirmLabel}</Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>

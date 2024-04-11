@@ -16,13 +16,11 @@ const SettingScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const logout = async () => {
-        setIsLoading(true);
-        setIsVisible(true);
-        try {
+        try {   
+            setIsLoading(true);
             await SecureStore.deleteItemAsync('authToken');
             dispatch(clearUserData());
             pb.authStore.clear();
-            navigation.navigate('Login' as never);
             navigation.dispatch(
                 CommonActions.reset({
                     index: 0,
@@ -31,19 +29,22 @@ const SettingScreen = () => {
             ); 
         } catch (error) {
             console.log(error);
+        }finally{
+            setIsLoading(false);
+            navigation.navigate('Login' as never);
         }
-        setIsLoading(false);
     }
     return (
         <View style={styles.container}>
             <Text>{t('setting')}</Text>
-            <Button loading={isLoading} disabled={isLoading} mode="contained" onPress={() => { logout()}}>Logout</Button>
+            <Button loading={isLoading} disabled={isLoading} mode="contained" onPress={() => setIsVisible(true)}>Logout</Button>
             <TextDialog2Btn
-                icon='alert-outline'
+                icon='logout'
                 isVisible={isVisible}
-                onDismiss={() => setIsVisible(false)}
-                title={t('loginError')}
-                content={t('logoutError')}
+                onDismiss={() =>  setIsVisible(false)}
+                onConfirm={() => { setIsVisible(false); logout()}}
+                title='Log out?'
+                content='Are you sure you want to log out?'
             />
         </View>
     );

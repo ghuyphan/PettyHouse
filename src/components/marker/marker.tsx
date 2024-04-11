@@ -1,7 +1,8 @@
-import { Marker } from "react-native-maps";
+import { Callout, Marker } from "react-native-maps";
 import React from 'react';
 import { StyleSheet, View, Image } from 'react-native';
 // import { Image } from 'expo-image';
+import { Text, Surface } from 'react-native-paper';
 
 interface MapMarker {
     coordinate: {
@@ -10,35 +11,32 @@ interface MapMarker {
     };
     title: string;
     image: string;
-    // Add any other properties here
 }
 
 const CustomMarker = ({ marker }: { marker: MapMarker; index: number }) => {
-    // const blurhash =
-    //     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
-
     return (
         <Marker
             coordinate={marker.coordinate}
             title={marker.title}
+            description="Hello world dashjkdhasjlhdajskhdhja"
         >
             <View style={styles.container}>
                 <Image
                     source={require('../../../assets/images/marker.png')}
-                    style={styles.image}
-                    // placeholder={blurhash}
-                    // contentFit="cover"
-                    // transition={1000}
+                    style={styles.markerIcon}
                 />
                 <Image
                     source={{ uri: marker.image }}
-                    style={styles.centeredImage}
-                    // placeholder={blurhash}
-                    // contentFit="cover"
-                    // transition={1000}
+                    style={styles.markerImage}
                 />
             </View>
 
+            <Callout tooltip>
+                <View style={styles.bubble}>
+                    <Text>{marker.title}</Text>
+                </View>
+                <View style={styles.arrowBorder} />
+            </Callout>
         </Marker>
     );
 }
@@ -50,17 +48,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    image: {
+    markerIcon: {
         position: 'absolute',  // Add position absolute
         width: '140%',          
         height: '140%',
-        
+        bottom: -10,
     },
-    centeredImage: {
-        width: 50,
+    markerImage: {
+        width: 52,
         aspectRatio: 1,
         borderRadius: 50,
-        bottom: 2,
+        bottom: 8.7,
+    },
+    bubble: {
+        width: 180,
+        // height: 100,
+        backgroundColor: '#f0f9fc',
+        paddingVertical: 5,
+        paddingHorizontal: 7,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    }, 
+    arrowBorder: {
+        backgroundColor: 'transparent',
+        borderColor: 'transparent',
+        borderTopColor: '#f0f9fc',
+        borderWidth: 10,
+        alignSelf: 'center',
+        marginTop: -0.5,
     }
 });
 
