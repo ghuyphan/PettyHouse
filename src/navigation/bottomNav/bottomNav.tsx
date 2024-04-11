@@ -57,7 +57,7 @@ export default function BottomNav() {
                             options.tabBarLabel !== undefined
                                 ? options.tabBarLabel
                                 : options.title !== undefined
-                                    ? options.title   
+                                    ? options.title
                                     : route.title;
                         return label;
                     }}
@@ -82,12 +82,26 @@ export default function BottomNav() {
                 name="Nearby"
                 component={SettingsScreen}
                 options={{
-                    tabBarLabel: 'Recent',
+                    tabBarLabel: 'Gần đây',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
-                            <Icon name="clock" size={size} color={color} />
+                            <Icon name="calendar-blank" size={size} color={color} />
                         ) : (
-                            <Icon name="clock-outline" size={size} color={color} />
+                            <Icon name="calendar-blank-outline" size={size} color={color} />
+                        );
+                    },
+                }}
+            />
+            <Tab.Screen
+                name="Add"
+                component={SettingsScreen}
+                options={{
+                    tabBarLabel: 'Tạo mới',
+                    tabBarIcon: ({ focused, color, size }) => {
+                        return focused ? (
+                            <Icon name="plus-circle" size={size} color={color} />
+                        ) : (
+                            <Icon name="plus-circle-outline" size={size} color={color} />
                         );
                     },
                 }}
@@ -96,7 +110,7 @@ export default function BottomNav() {
                 name="Profile"
                 component={SettingsScreen}
                 options={{
-                    tabBarLabel: 'Profile',
+                    tabBarLabel: 'Cá nhân',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="paw" size={size} color={color} />
@@ -107,10 +121,10 @@ export default function BottomNav() {
                 }}
             />
             <Tab.Screen
-                name="Settings"
+                name="Account"
                 component={SettingScreen}
                 options={{
-                    tabBarLabel: 'Settings',
+                    tabBarLabel: 'Tài khoản',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="account" size={size} color={color} />

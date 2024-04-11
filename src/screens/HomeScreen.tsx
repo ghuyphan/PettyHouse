@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, BackHandler, ToastAndroid } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, View, BackHandler } from 'react-native';
 import { FAB, Text, ActivityIndicator } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import Animated, {
     Easing,
     useAnimatedStyle,
 } from 'react-native-reanimated';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
@@ -19,6 +20,7 @@ import CustomMarker from '../components/marker/marker';
 import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
 import { getDistanceFromLatLonInKm, calculateBoundingBox } from '../utils/distanceUtils';
+import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
 
 //Type import
@@ -32,82 +34,41 @@ const HomeScreen = () => {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
     });
-    let lastClickTime = 0;
 
     const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState('');
     const [circleProps, setCircleProps] = useState<TypeCirlce | null>(null);
     const userData = useSelector((state: RootState) => state.user.userData);
     const [isVisible, setIsVisible] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const containerPosition = useSharedValue(-500);
-    const containerScale = useSharedValue(1);
     const mapRef = useRef<MapView>(null);
     const [markers, setMarkers] = useState<TypeMarker[]>([]);
     const [isLoadingRegion, setIsLoadingRegion] = useState(false);
+    //Timer to prevent multiple button spam
+    const [isLoadingData, setIsLoadingData] = useState(false);
+    const lastFetchTime = useRef(0); // Store timestamp of last fetch (pet fab)
+    const lastClickTime = useRef(0); // Store timestamp of last click (location fab)
+
+    //Bottom sheet
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    //Animation
+    const containerPosition = useSharedValue(-500);
+    const containerScale = useSharedValue(0.1);
     const animatedLoadingStyle = useAnimatedStyle(() => {
         return {
-            position: 'absolute',
             bottom: containerPosition.value,
-            left: 110,
-            right: 110,
             justifyContent: 'center',
             alignItems: 'center',
             padding: 10,
             backgroundColor: '#f0f9fc',
             borderRadius: 50,
-            transform: [{ scale: containerScale.value }] 
+            transform: [{ scale: containerScale.value }]
         };
     });
+    // callbacks
+    const handleSheetChanges = useCallback((index: number) => {
+        console.log('handleSheetChanges', index);
+    }, []);
 
-    const handleLocation = async () => {
-        const currentTime = Date.now();
-        const timeSinceLastClick = currentTime - lastClickTime;
-        const { status } = await Location.getForegroundPermissionsAsync();
-        if (status == 'granted') {
-            if (timeSinceLastClick >= 1200) {
-                const location = await Location.getCurrentPositionAsync({});
-                await SecureStore.setItemAsync('lastLocation', JSON.stringify({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
-                }));
-
-                mapRef.current?.animateCamera({
-                    center: {
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude,
-                    },
-                    zoom: 15
-                }, { duration: 1200 });
-                lastClickTime = currentTime;
-            }
-
-        } else {
-            setIsVisible(true);
-            return;
-        }
-    };
-
-    const handleFetchingPet = async () => {
-        const currentTime = Date.now();
-        const timeSinceLastClick = currentTime - lastClickTime;
-        const { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            setIsVisible(true);
-            return;
-        } else if (timeSinceLastClick >= 2000) {
-            const location = await Location.getCurrentPositionAsync({});
-            await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
-            setCircleProps({
-                center: {
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                },
-                radius: 2000,
-            });
-            lastClickTime = currentTime;
-        }
-    }
     const requestLocationPermission = async () => {
         setIsVisible(false);
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -119,45 +80,107 @@ const HomeScreen = () => {
         }
     }
 
+
+    const handleLocation = useCallback(async () => {
+        const currentTime = Date.now();
+        const timeSinceLastClick = currentTime - lastClickTime.current;
+        const threshold = 1200; // 1.2 seconds minimum between location updates
+
+        const { status } = await Location.getForegroundPermissionsAsync();
+
+        if (status !== 'granted') {
+            setIsVisible(true);
+            return;
+        }
+
+        if (timeSinceLastClick >= threshold) {
+            const location = await Location.getCurrentPositionAsync({});
+            await SecureStore.setItemAsync('lastLocation', JSON.stringify({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            }));
+
+            mapRef.current?.animateCamera({
+                center: {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                },
+                zoom: 15
+            }, { duration: 800 });
+
+            lastClickTime.current = currentTime;
+        }
+    }, [lastClickTime]); // lastClickTime as the dependency
+
+    const handleFetchingPet = useCallback(async () => {
+        const currentTime = Date.now();
+        const timeSinceLastFetch = currentTime - lastFetchTime.current;
+        const threshold = 3000; // 3 seconds minimum between fetches
+
+        if (isLoadingData || timeSinceLastFetch < threshold) {
+            return; // Ignore the request if still loading or threshold not met
+        }
+
+        setIsLoadingData(true); // Start loading indicator
+
+        try {
+            containerPosition.value = withTiming(80, { duration: 1000, easing: Easing.inOut(Easing.ease) });
+            containerScale.value = withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) });
+            handleLocation();
+            const location = await Location.getCurrentPositionAsync({});
+            const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
+
+            const newMarkers = records.map(record => ({
+                coordinate: {
+                    latitude: record.latitude,
+                    longitude: record.longitude
+                },
+                title: record.text,
+                image: constructImageURL(record.image, record.id),
+            }));
+
+            setMarkers(newMarkers);
+            setCircleProps({
+                center: {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                },
+                radius: 2000,
+            });
+
+        } catch (error) {
+            console.error('Error fetching records:', error);
+        } finally {
+            setTimeout(() => {
+                containerPosition.value = withTiming(-500, { duration: 1000, easing: Easing.inOut(Easing.ease) });
+                containerScale.value = withTiming(0.1, { duration: 500, easing: Easing.inOut(Easing.ease) });
+            }, 1200);
+            setIsLoadingData(false); // Stop loading indicator
+            lastFetchTime.current = currentTime;
+        }
+    }, [isLoadingData]);
+
+
     const fetchRecordsWithinRadius = async function (centerLat: number, centerLon: number, radius: number) {
-        // Create a bounding box around the center point
-        // setIsLoading(true);
-        containerPosition.value = withTiming(30, { duration: 500, easing: Easing.inOut(Easing.ease) });
-        containerScale.value = withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) });
-        const boundingBox = calculateBoundingBox(centerLat, centerLon, radius);
-    
-        // Query to fetch records within the bounding box
-        const potentialRecords = await pb.collection('posts').getList(1, 50, {
-            filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon}`
-        });
+        try {
+            const boundingBox = calculateBoundingBox(centerLat, centerLon, radius);
+            const potentialRecords = await pb.collection('posts').getList(1, 50, {
+                filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon}`
+            });
 
-        const filteredRecords = potentialRecords.items.filter(record => {
-            const distance = getDistanceFromLatLonInKm(
-                { latitude: centerLat, longitude: centerLon },
-                { latitude: record.latitude, longitude: record.longitude }
-            );
-            return distance <= radius;
-        });
-        const newMarkers = filteredRecords.map(record => ({
-            coordinate: {
-                latitude: record.latitude,
-                longitude: record.longitude
-            },
-            title: record.text, // Assuming you have a 'title' field
-            image: constructImageURL(record.image, record.id),
-        }));
-        setMarkers(newMarkers);
-        containerPosition.value = withTiming(-500, { duration: 1000, easing: Easing.inOut(Easing.ease) });
-        containerScale.value = withTiming(0.1, { duration: 500, easing: Easing.inOut(Easing.ease) }); // Scale up
-        // setIsLoading(false);
-    }
-    const constructImageURL = (image: string, record: string) => {
-        const baseURL = 'https://petty-house.pockethost.io/api/files/';
-        const collectionId = 'fbj6nkb0oiiajw3'; // Replace with your actual collection ID
-        const recordId = record; // Assuming your record has an 'id' field
-        const fileName = image;
+            const filteredRecords = potentialRecords.items.filter(record => {
+                const distance = getDistanceFromLatLonInKm(
+                    { latitude: centerLat, longitude: centerLon },
+                    { latitude: record.latitude, longitude: record.longitude }
+                );
+                return distance <= radius;
+            });
 
-        return `${baseURL}${collectionId}/${recordId}/${fileName}`;
+            return filteredRecords;
+
+        } catch (error) {
+            throw error;
+        }
     }
 
     useEffect(() => {
@@ -228,7 +251,7 @@ const HomeScreen = () => {
 
             <SearchbarComponent onSearchUpdate={setSearchQuery} />
             <FAB
-                style={{ position: 'absolute', bottom: 120, right: 20, borderRadius: 50 }}
+                style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
                 icon="crosshairs-gps" // Dynamically change icon
                 color={'#8ac5db'}
                 onPress={handleLocation} // Update onPress behavior
@@ -237,7 +260,7 @@ const HomeScreen = () => {
             />
 
             <FAB
-                style={{ position: 'absolute', bottom: 30, right: 20, backgroundColor: '#8ac5db' }}
+                style={{ position: 'absolute', bottom: 80, right: 20, backgroundColor: '#8ac5db' }}
                 color={'#fff'}
                 icon="paw"
                 onPress={handleFetchingPet}
@@ -253,16 +276,24 @@ const HomeScreen = () => {
                 content={t('locationPermissionContent')}
                 confirmLabel={t('locationPermissionButton')}
             />
-            {/* {isLoading && ( */}
+            <View style={styles.loadingContainer}>
                 <Animated.View style={animatedLoadingStyle}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                         <ActivityIndicator />
                         <Text>Finding nearby pets...</Text>
                     </View>
                 </Animated.View>
-            {/* )} */}
-
-
+            </View>
+            <BottomSheet
+                ref={bottomSheetRef}
+                onChange={handleSheetChanges}
+                snapPoints={[60, 500]}
+                handleIndicatorStyle={{ backgroundColor: '#ccc' }}
+            >
+                <BottomSheetView style={styles.contentContainer}>
+                    <Text>Awesome 🎉</Text>
+                </BottomSheetView>
+            </BottomSheet>
         </View>
     );
 };
@@ -276,12 +307,16 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         position: 'absolute',
-        bottom: 30,
+        bottom: 0,
         left: 10,
         right: 10,
         justifyContent: 'center',
         alignItems: 'center',
-    }
+    },
+    contentContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
 });
 
 export default HomeScreen;

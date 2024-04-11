@@ -23,6 +23,7 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({ onSearchUpdate 
     return (
         <Searchbar
             placeholder={t('searchPlaceholder')}
+            mode='bar'
             onChangeText={handleOnChangeText}
             value={searchQuery}
             iconColor='#b5e1eb'

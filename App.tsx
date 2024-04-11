@@ -74,8 +74,6 @@ export default function App() {
           onDismiss={onDismissSnackBar}
           duration={1000000000000000}
           wrapperStyle={{ bottom: 10 }}
-          // style={{ backgroundColor: '#f0f9fc' }}
-          // theme={{ colors: { primary: '#b5e1eb', inverseOnSurface: '#000000' } }}
           action={{
             label: t('close'),
             labelStyle: { color: '#b5e1eb' },
