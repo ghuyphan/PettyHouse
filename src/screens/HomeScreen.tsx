@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, BackHandler } from 'react-native';
+import { StyleSheet, View, BackHandler, Dimensions, Platform } from 'react-native';
 import { FAB, Text, ActivityIndicator } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,6 @@ import Animated, {
     Easing,
     useAnimatedStyle,
 } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
@@ -19,9 +18,12 @@ import TextDialog from '../components/modal/textDialog'; // Adjust the path if n
 import CustomMarker from '../components/marker/marker';
 import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
-import { getDistanceFromLatLonInKm, calculateBoundingBox } from '../utils/distanceUtils';
 import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
+import BottomSheetComponent from '../components/button/bottomSheet';
+
+//API import
+import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
 
 //Type import
 import TypeMarker from '../types/markers';
@@ -43,15 +45,34 @@ const HomeScreen = () => {
     const mapRef = useRef<MapView>(null);
     const [markers, setMarkers] = useState<TypeMarker[]>([]);
     const [isLoadingRegion, setIsLoadingRegion] = useState(false);
+
+    const [zoomLevel, setZoomLevel] = useState(15);
     //Timer to prevent multiple button spam
     const [isLoadingData, setIsLoadingData] = useState(false);
     const lastFetchTime = useRef(0); // Store timestamp of last fetch (pet fab)
     const lastClickTime = useRef(0); // Store timestamp of last click (location fab)
 
-    const [zoomLevel, setZoomLevel] = useState(15);
-
     //Bottom sheet
-    const bottomSheetRef = useRef<BottomSheet>(null);
+    const bottomSheetPosition = useSharedValue<number>(0);
+    const windowHeight = Dimensions.get('window').height;
+    const animatedFABStyle = useAnimatedStyle(() => {
+        const availableSpace = windowHeight - bottomSheetPosition.value;
+        const maxOffset = windowHeight * 0.7;
+        const FABOffset = Platform.OS === 'ios' ? 170 : 90; // Adjust as needed
+        const maxBottomPosition = windowHeight - maxOffset;
+
+        let calculatedFABPosition = availableSpace - FABOffset;
+
+        // Limit upward movement when enough space is available
+        if (calculatedFABPosition > maxBottomPosition) {
+            calculatedFABPosition = maxBottomPosition;
+        }
+
+        return {
+            bottom: calculatedFABPosition,
+        };
+    });
+
     //Animation
     const containerPosition = useSharedValue(0);
     const containerScale = useSharedValue(0.1);
@@ -66,9 +87,10 @@ const HomeScreen = () => {
             transform: [{ scale: containerScale.value }]
         };
     });
+    const [haveRecordData, setHaveRecordData] = useState(false);
     // callbacks
     const handleSheetChanges = useCallback((index: number) => {
-        console.log('handleSheetChanges', index);
+        // console.log(bottomSheetPosition)
     }, []);
 
     const requestLocationPermission = async () => {
@@ -82,11 +104,10 @@ const HomeScreen = () => {
         }
     }
 
-
     const handleLocation = useCallback(async () => {
         const currentTime = Date.now();
         const timeSinceLastClick = currentTime - lastClickTime.current;
-        const threshold = 500; // 500 milliseconds minimum between location updates
+        const threshold = 500;
 
         const { status } = await Location.getForegroundPermissionsAsync();
 
@@ -94,25 +115,60 @@ const HomeScreen = () => {
             setIsVisible(true);
             return;
         }
-
         if (timeSinceLastClick >= threshold) {
-            const location = await Location.getCurrentPositionAsync({});
-            await SecureStore.setItemAsync('lastLocation', JSON.stringify({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude
-            }));
+            try {
+                const location = await Location.getCurrentPositionAsync({});
+                const currentRegion = await mapRef.current?.getMapBoundaries();
+                const newZoom = zoomLevel === 15 ? 17 : 15;
 
-            mapRef.current?.animateCamera({
-                center: {
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                },
-                zoom: 15,
-                heading: 0,
-            }, { duration: 500 });
-            lastClickTime.current = currentTime;
+                if (currentRegion) {
+                    const centerThreshold = 0.9;
+
+                    const centerRegion = {
+                        northEast: {
+                            latitude: currentRegion.northEast.latitude - (currentRegion.northEast.latitude - currentRegion.southWest.latitude) * centerThreshold / 2,
+                            longitude: currentRegion.northEast.longitude - (currentRegion.northEast.longitude - currentRegion.southWest.longitude) * centerThreshold / 2,
+                        },
+                        southWest: {
+                            latitude: currentRegion.southWest.latitude + (currentRegion.northEast.latitude - currentRegion.southWest.latitude) * centerThreshold / 2,
+                            longitude: currentRegion.southWest.longitude + (currentRegion.northEast.longitude - currentRegion.southWest.longitude) * centerThreshold / 2,
+                        }
+                    };
+
+                    if (location.coords.latitude >= centerRegion.southWest.latitude &&
+                        location.coords.latitude <= centerRegion.northEast.latitude &&
+                        location.coords.longitude >= centerRegion.southWest.longitude &&
+                        location.coords.longitude <= centerRegion.northEast.longitude) {
+                        // User is within the center region
+                        mapRef.current?.animateCamera({
+                            center: {
+                                latitude: location.coords.latitude,
+                                longitude: location.coords.longitude,
+                            },
+                            zoom: newZoom,
+                            heading: 0,
+                        }, { duration: 400 });
+                        setZoomLevel(newZoom);
+
+                    } else {
+                        // User is outside the center region
+                        mapRef.current?.animateCamera({
+                            center: {
+                                latitude: location.coords.latitude,
+                                longitude: location.coords.longitude,
+                            },
+                            heading: 0,
+                        }, { duration: 500 });
+                    }
+                }
+
+                lastClickTime.current = currentTime;
+            } catch (error) {
+                console.error('Error getting location:', error);
+                // Handle the error 
+            }
         }
-    }, [lastClickTime]); // Add zoomLevel to the dependencies
+    }, [lastClickTime, zoomLevel]);
 
 
     const handleFetchingPet = useCallback(async () => {
@@ -133,14 +189,10 @@ const HomeScreen = () => {
                 setIsVisible(true);
                 return;
             } else {
-                containerPosition.value = withTiming(80, { duration: 400, easing: Easing.inOut(Easing.ease) });
+                containerPosition.value = withTiming(85, { duration: 400, easing: Easing.inOut(Easing.ease) });
                 containerScale.value = withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) });
-                
+
                 const location = await Location.getCurrentPositionAsync({});
-                await SecureStore.setItemAsync('lastLocation', JSON.stringify({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
-                }));
 
                 mapRef.current?.animateCamera({
                     center: {
@@ -150,6 +202,7 @@ const HomeScreen = () => {
                     zoom: 15,
                     heading: 0,
                 }, { duration: 500 });
+                setZoomLevel(15);
 
                 const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
 
@@ -173,6 +226,7 @@ const HomeScreen = () => {
             }
         } catch (error) {
             console.error('Error fetching records:', error);
+            setHaveRecordData(false);
         } finally {
             setTimeout(() => {
                 containerPosition.value = withTiming(0, { duration: 400, easing: Easing.inOut(Easing.ease) });
@@ -180,37 +234,14 @@ const HomeScreen = () => {
             }, 1200);
             setIsLoadingData(false); // Stop loading indicator
             lastFetchTime.current = currentTime;
+            setHaveRecordData(true);
         }
     }, [isLoadingData]);
-
-
-    const fetchRecordsWithinRadius = async function (centerLat: number, centerLon: number, radius: number) {
-        try {
-            const boundingBox = calculateBoundingBox(centerLat, centerLon, radius);
-            const potentialRecords = await pb.collection('posts').getList(1, 50, {
-                filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon}`
-            });
-
-            const filteredRecords = potentialRecords.items.filter(record => {
-                const distance = getDistanceFromLatLonInKm(
-                    { latitude: centerLat, longitude: centerLon },
-                    { latitude: record.latitude, longitude: record.longitude }
-                );
-                return distance <= radius;
-            });
-
-            return filteredRecords;
-
-        } catch (error) {
-            throw error;
-        }
-    }
 
     useEffect(() => {
         const fetchLastLocation = async () => {
             setIsLoadingRegion(true);
             const lastLocationString = await SecureStore.getItemAsync('lastLocation');
-            console.log(lastLocationString);
             if (lastLocationString) {
                 const lastLocation = JSON.parse(lastLocationString);
                 setRegion({
@@ -274,23 +305,25 @@ const HomeScreen = () => {
             )}
 
             <SearchbarComponent onSearchUpdate={setSearchQuery} />
-            <FAB
-                style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
-                icon= 'crosshairs-gps'
-                color={'#8ac5db'}
-                onPress={handleLocation} 
-                variant='primary'
-                rippleColor={'#b5e1eb'}
-            />
+            <Animated.View style={animatedFABStyle}>
+                <FAB
+                    style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
+                    icon={zoomLevel === 15 ? 'crosshairs-gps' : 'compass'}
+                    color={'#8ac5db'}
+                    onPress={handleLocation}
+                    variant='primary'
+                    rippleColor={'#b5e1eb'}
+                />
 
-            <FAB
-                style={{ position: 'absolute', bottom: 80, right: 20, backgroundColor: '#8ac5db' }}
-                color={'#fff'}
-                icon="paw"
-                onPress={handleFetchingPet}
-                variant='primary'
-                rippleColor={'#f0f9fc'}
-            />
+                <FAB
+                    style={{ position: 'absolute', bottom: 80, right: 20, backgroundColor: '#8ac5db' }}
+                    color={'#fff'}
+                    icon="paw"
+                    onPress={handleFetchingPet}
+                    variant='primary'
+                    rippleColor={'#f0f9fc'}
+                />
+            </Animated.View>
             <TextDialog
                 dismissable={false}
                 icon='map-marker-outline'
@@ -303,21 +336,17 @@ const HomeScreen = () => {
             <View style={styles.loadingContainer}>
                 <Animated.View style={animatedLoadingStyle}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                        <ActivityIndicator />
-                        <Text>Finding nearby pets...</Text>
+                        <ActivityIndicator size="small" color={'#8ac5db'} />
+                        <Text style={{ color: '#8ac5db', fontWeight: 'bold', fontSize: 14 }}>{t('fetchingData')}</Text>
                     </View>
                 </Animated.View>
             </View>
-            <BottomSheet
-                ref={bottomSheetRef}
+            <BottomSheetComponent
+                title={haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}
                 onChange={handleSheetChanges}
-                snapPoints={[60, 500]}
-                handleIndicatorStyle={{ backgroundColor: '#ccc' }}
-            >
-                <BottomSheetView style={styles.contentContainer}>
-                    <Text>Awesome 🎉</Text>
-                </BottomSheetView>
-            </BottomSheet>
+                animatedPosition={bottomSheetPosition}
+                snapPoint={haveRecordData ? [65, 300, 600] : [65]}
+            />
         </View>
     );
 };
@@ -335,10 +364,6 @@ const styles = StyleSheet.create({
         left: 10,
         right: 10,
         justifyContent: 'center',
-        alignItems: 'center',
-    },
-    contentContainer: {
-        flex: 1,
         alignItems: 'center',
     },
 });

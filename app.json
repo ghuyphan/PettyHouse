@@ -21,13 +21,19 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#b5e1eb"
-      }
+      },
+      "package": "com.giahuyphan0110.furever_home2"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f4105f44-caa8-411f-83e1-8ea4c7682ff2"
+      }
+    }
   }
 }

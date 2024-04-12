@@ -58,6 +58,7 @@ i18n.use(initReactI18next).init({
         locationPermissionContent: 'For the best experience and finding pets in your area, Petty House uses your location!',
         locationPermissionButton: 'Continue',
         explore: 'Explore',
+        fetchingData: 'Finding nearby pets...'
       },
     },
     vi: {
@@ -112,6 +113,7 @@ i18n.use(initReactI18next).init({
         locationPermissionContent: 'Để có trải nghiệm tốt nhất và tìm thú cưng trong khu vực của bạn, Petty House sẽ sử dụng vị trí của bạn! ',
         locationPermissionButton: 'Tiếp tục',
         explore: 'Khám phá',
+        fetchingData: 'Đang tìm kiếm...'
       },
     },
     // Add more languages as needed

@@ -39,7 +39,7 @@ const SettingScreen = () => {
             <Text>{t('setting')}</Text>
             <Button loading={isLoading} disabled={isLoading} mode="contained" onPress={() => setIsVisible(true)}>Logout</Button>
             <TextDialog2Btn
-                icon='logout'
+                // icon='logout'
                 isVisible={isVisible}
                 onDismiss={() =>  setIsVisible(false)}
                 onConfirm={() => { setIsVisible(false); logout()}}

@@ -35,7 +35,7 @@ const CustomMarker = ({ marker }: { marker: MapMarker; index: number }) => {
                 <View style={styles.bubble}>
                     <Text>{marker.title}</Text>
                 </View>
-                <View style={styles.arrowBorder} />
+                {/* <View style={styles.arrowBorder} /> */}
             </Callout>
         </Marker>
     );
@@ -62,22 +62,24 @@ const styles = StyleSheet.create({
     },
     bubble: {
         width: 180,
-        // height: 100,
+        height: 100,
         backgroundColor: '#f0f9fc',
         paddingVertical: 5,
         paddingHorizontal: 7,
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: 5,
     }, 
-    arrowBorder: {
-        backgroundColor: 'transparent',
-        borderColor: 'transparent',
-        borderTopColor: '#f0f9fc',
-        borderWidth: 10,
-        alignSelf: 'center',
-        marginTop: -0.5,
-    }
+    // arrowBorder: {
+    //     backgroundColor: 'transparent',
+    //     borderColor: 'transparent',
+    //     borderStyle: 'solid',
+    //     borderTopColor: 'red',
+    //     borderWidth: 10,
+    //     alignSelf: 'center',
+    //     marginTop: -10,
+    // }
 });
 
 export default CustomMarker;
