@@ -55,10 +55,11 @@ i18n.use(initReactI18next).init({
         emailSentErrorMessage: 'An error occurred while sending the email. Please try again',
         searchPlaceholder: 'Search',
         locationPermissionTitle: 'Petty House needs access to your location',
-        locationPermissionContent: 'For the best experience and finding pets in your area, Petty House uses your location!',
+        locationPermissionContent: 'For the best experience and functionality, Petty House will use your location!',
         locationPermissionButton: 'Continue',
+        locationPermissionMessage: 'Please enable location to use this feature',
+        fetchingData: 'Finding nearby pets...',
         explore: 'Explore',
-        fetchingData: 'Finding nearby pets...'
       },
     },
     vi: {
@@ -110,10 +111,11 @@ i18n.use(initReactI18next).init({
         emailSentErrorMessage: 'Có lỗi xảy ra, vui lòng thử lại sau.',
         searchPlaceholder: 'Tìm kiếm',
         locationPermissionTitle: 'Petty House cần quyền truy cập vào vị tri',
-        locationPermissionContent: 'Để có trải nghiệm tốt nhất và tìm thú cưng trong khu vực của bạn, Petty House sẽ sử dụng vị trí của bạn! ',
+        locationPermissionContent: 'Để có trải nghiệm tốt nhất và sử dụng các tính năng, Petty House sẽ sử dụng vị trí của bạn! ',
         locationPermissionButton: 'Tiếp tục',
+        locationPermissionMessage: 'Vui lòng bật vị trí để sử dụng tính năng này',
+        fetchingData: 'Đang tìm kiếm...',
         explore: 'Khám phá',
-        fetchingData: 'Đang tìm kiếm...'
       },
     },
     // Add more languages as needed

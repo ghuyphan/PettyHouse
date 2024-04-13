@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, BackHandler, Dimensions, Platform } from 'react-native';
+import { StyleSheet, View, BackHandler, Dimensions, Platform, Alert } from 'react-native';
 import { FAB, Text, ActivityIndicator } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
@@ -16,12 +16,12 @@ import Animated, {
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
 import TextDialog from '../components/modal/textDialog'; // Adjust the path if needed
 import CustomMarker from '../components/marker/marker';
-import pb from '../services/pocketBase';
+// import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
 import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
 import BottomSheetComponent from '../components/button/bottomSheet';
-
+import PopupDialog from '../components/modal/popupDialog';
 //API import
 import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
 
@@ -46,7 +46,7 @@ const HomeScreen = () => {
     const [markers, setMarkers] = useState<TypeMarker[]>([]);
     const [isLoadingRegion, setIsLoadingRegion] = useState(false);
 
-    const [zoomLevel, setZoomLevel] = useState(15);
+    const [zoomLevel, setZoomLevel] = useState(0);
     //Timer to prevent multiple button spam
     const [isLoadingData, setIsLoadingData] = useState(false);
     const lastFetchTime = useRef(0); // Store timestamp of last fetch (pet fab)
@@ -57,8 +57,15 @@ const HomeScreen = () => {
     const windowHeight = Dimensions.get('window').height;
     const animatedFABStyle = useAnimatedStyle(() => {
         const availableSpace = windowHeight - bottomSheetPosition.value;
-        const maxOffset = windowHeight * 0.7;
-        const FABOffset = Platform.OS === 'ios' ? 170 : 90; // Adjust as needed
+        let maxOffset = 0;
+        let FABOffset = 0;
+        if (windowHeight < 700) {
+            FABOffset = Platform.OS === 'ios' ? 150 : 90;
+            maxOffset = windowHeight * 0.65;
+        } else {
+            FABOffset = Platform.OS === 'ios' ? 170 : 90;
+            maxOffset = windowHeight * 0.7;
+        }
         const maxBottomPosition = windowHeight - maxOffset;
 
         let calculatedFABPosition = availableSpace - FABOffset;
@@ -73,32 +80,57 @@ const HomeScreen = () => {
         };
     });
 
-    //Animation
+    //Popup dialog animation 
     const containerPosition = useSharedValue(0);
     const containerScale = useSharedValue(0.1);
-    const animatedLoadingStyle = useAnimatedStyle(() => {
-        return {
-            bottom: containerPosition.value,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 10,
-            backgroundColor: '#f0f9fc',
-            borderRadius: 50,
-            transform: [{ scale: containerScale.value }]
-        };
-    });
+    const [isError, setIsError] = useState(false);
     const [haveRecordData, setHaveRecordData] = useState(false);
+    const [popupMessage, setpopupMessage] = useState('');
     // callbacks
     const handleSheetChanges = useCallback((index: number) => {
         // console.log(bottomSheetPosition)
     }, []);
+    const openPopupDialog = () => {
+        containerPosition.value = withTiming(90, { duration: 300, easing: Easing.inOut(Easing.ease) });
+        containerScale.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) });
+    }
+    const closePopupDialog = () => {
+        containerPosition.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });  
+        containerScale.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
+    }
+    const animateZoomMap = ( longtitude : number, latitude : number, zoomLevel: number, duration: number, doZoom: boolean) => {
+        if(doZoom) {
+            mapRef.current?.animateCamera({
+                center: {
+                    latitude: latitude,
+                    longitude: longtitude,
+                },
+                zoom: zoomLevel,
+                heading: 0,
+            }, { duration: duration });
+            setZoomLevel(zoomLevel);
+        } else { 
+            mapRef.current?.animateCamera({
+                center: {
+                    latitude: latitude,
+                    longitude: longtitude,
+                },
+                heading: 0,
+            }, { duration: 500 });
+        }
+    }
 
     const requestLocationPermission = async () => {
         setIsVisible(false);
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            // ToastAndroid.show('Permission to access location was denied', ToastAndroid.SHORT);
-            return;
+            //If permission not granted, show error pop-up with error message
+            setIsError(true);
+            setpopupMessage(t('locationPermissionMessage'));
+            openPopupDialog();
+            setTimeout(() => {
+                closePopupDialog();
+            }, 2000);
         } else {
             handleLocation();
         }
@@ -117,9 +149,16 @@ const HomeScreen = () => {
         }
         if (timeSinceLastClick >= threshold) {
             try {
-                const location = await Location.getCurrentPositionAsync({});
+                const location = await Location.getCurrentPositionAsync();
                 const currentRegion = await mapRef.current?.getMapBoundaries();
                 const newZoom = zoomLevel === 15 ? 17 : 15;
+                const lastLocation = {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude
+                };  // Save last location
+                if (lastLocation.latitude !== location.coords.latitude || lastLocation.longitude !== location.coords.longitude) {
+                    await SecureStore.setItemAsync('lastLocation', JSON.stringify(lastLocation));
+                }
 
                 if (currentRegion) {
                     const centerThreshold = 0.9;
@@ -140,36 +179,21 @@ const HomeScreen = () => {
                         location.coords.longitude >= centerRegion.southWest.longitude &&
                         location.coords.longitude <= centerRegion.northEast.longitude) {
                         // User is within the center region
-                        mapRef.current?.animateCamera({
-                            center: {
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                            },
-                            zoom: newZoom,
-                            heading: 0,
-                        }, { duration: 400 });
-                        setZoomLevel(newZoom);
+                        animateZoomMap(location.coords.longitude, location.coords.latitude, newZoom, 500, true);
 
                     } else {
                         // User is outside the center region
-                        mapRef.current?.animateCamera({
-                            center: {
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                            },
-                            heading: 0,
-                        }, { duration: 500 });
+                        animateZoomMap(location.coords.longitude, location.coords.latitude, 0, 500, false);
+
                     }
                 }
 
                 lastClickTime.current = currentTime;
             } catch (error) {
                 console.error('Error getting location:', error);
-                // Handle the error 
             }
         }
     }, [lastClickTime, zoomLevel]);
-
 
     const handleFetchingPet = useCallback(async () => {
         const currentTime = Date.now();
@@ -179,30 +203,22 @@ const HomeScreen = () => {
         if (isLoadingData || timeSinceLastFetch < threshold) {
             return; // Ignore the request if still loading or threshold not met
         }
+        const { status } = await Location.getForegroundPermissionsAsync();
 
         setIsLoadingData(true); // Start loading indicator
-
-        try {
-            const { status } = await Location.getForegroundPermissionsAsync();
-
-            if (status !== 'granted') {
-                setIsVisible(true);
-                return;
-            } else {
-                containerPosition.value = withTiming(85, { duration: 400, easing: Easing.inOut(Easing.ease) });
-                containerScale.value = withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) });
-
+        if (status !== 'granted') {
+            lastFetchTime.current = currentTime;
+            setIsLoadingData(false);
+            setIsVisible(true);
+            return;
+        } else {
+            try {
                 const location = await Location.getCurrentPositionAsync({});
 
-                mapRef.current?.animateCamera({
-                    center: {
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude,
-                    },
-                    zoom: 15,
-                    heading: 0,
-                }, { duration: 500 });
-                setZoomLevel(15);
+                animateZoomMap(location.coords.longitude, location.coords.latitude, 15, 500, true);
+                openPopupDialog();
+                setIsError(false);
+                setpopupMessage(t('fetchingData'))
 
                 const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
 
@@ -223,18 +239,17 @@ const HomeScreen = () => {
                     },
                     radius: 2000,
                 });
+            } catch (error) {
+                console.error('Error fetching records:', error);
+                setHaveRecordData(false);
+            } finally {
+                setTimeout(() => {
+                    closePopupDialog();
+                    setIsLoadingData(false); // Stop loading indicator
+                }, 1200);
+                lastFetchTime.current = currentTime;
+                setHaveRecordData(true);
             }
-        } catch (error) {
-            console.error('Error fetching records:', error);
-            setHaveRecordData(false);
-        } finally {
-            setTimeout(() => {
-                containerPosition.value = withTiming(0, { duration: 400, easing: Easing.inOut(Easing.ease) });
-                containerScale.value = withTiming(0.1, { duration: 400, easing: Easing.inOut(Easing.ease) });
-            }, 1200);
-            setIsLoadingData(false); // Stop loading indicator
-            lastFetchTime.current = currentTime;
-            setHaveRecordData(true);
         }
     }, [isLoadingData]);
 
@@ -300,7 +315,6 @@ const HomeScreen = () => {
                             fillColor="rgba(138, 197, 219, 0.2)"
                         />
                     )}
-
                 </MapView>
             )}
 
@@ -322,6 +336,7 @@ const HomeScreen = () => {
                     onPress={handleFetchingPet}
                     variant='primary'
                     rippleColor={'#f0f9fc'}
+                    disabled={isLoadingData}
                 />
             </Animated.View>
             <TextDialog
@@ -333,14 +348,14 @@ const HomeScreen = () => {
                 content={t('locationPermissionContent')}
                 confirmLabel={t('locationPermissionButton')}
             />
-            <View style={styles.loadingContainer}>
-                <Animated.View style={animatedLoadingStyle}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                        <ActivityIndicator size="small" color={'#8ac5db'} />
-                        <Text style={{ color: '#8ac5db', fontWeight: 'bold', fontSize: 14 }}>{t('fetchingData')}</Text>
-                    </View>
-                </Animated.View>
-            </View>
+            <PopupDialog
+                isLoading={isLoadingData}
+                message={popupMessage}
+                containerPosition={containerPosition}
+                containerScale={containerScale}
+                textColor={'#8ac5db'}
+                isError={isError}
+            />
             <BottomSheetComponent
                 title={haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}
                 onChange={handleSheetChanges}

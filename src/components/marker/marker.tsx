@@ -1,5 +1,5 @@
 import { Callout, Marker } from "react-native-maps";
-import React from 'react';
+import React, {useMemo} from 'react';
 import { StyleSheet, View, Image } from 'react-native';
 // import { Image } from 'expo-image';
 import { Text, Surface } from 'react-native-paper';
@@ -14,31 +14,36 @@ interface MapMarker {
 }
 
 const CustomMarker = ({ marker }: { marker: MapMarker; index: number }) => {
-    return (
-        <Marker
-            coordinate={marker.coordinate}
-            title={marker.title}
-            description="Hello world dashjkdhasjlhdajskhdhja"
-        >
-            <View style={styles.container}>
-                <Image
-                    source={require('../../../assets/images/marker.png')}
-                    style={styles.markerIcon}
-                />
-                <Image
-                    source={{ uri: marker.image }}
-                    style={styles.markerImage}
-                />
-            </View>
-
-            <Callout tooltip>
-                <View style={styles.bubble}>
-                    <Text>{marker.title}</Text>
+    const memoizedMarker = useMemo(() => {
+        return (
+            <Marker
+                coordinate={marker.coordinate}
+                title={marker.title}
+                description="Hello world dashjkdhasjlhdajskhdhja"
+                tracksViewChanges={false}
+            >
+                <View style={styles.container}>
+                    <Image
+                        source={require('../../../assets/images/marker.png')}
+                        style={styles.markerIcon}
+                    />
+                    <Image
+                        source={{ uri: marker.image }}
+                        style={styles.markerImage}
+                    />
                 </View>
-                {/* <View style={styles.arrowBorder} /> */}
-            </Callout>
-        </Marker>
-    );
+
+                <Callout tooltip>
+                    <View style={styles.bubble}>
+                        <Text>{marker.title}</Text>
+                    </View>
+                    {/* <View style={styles.arrowBorder} /> */}
+                </Callout>
+            </Marker>
+        );
+    }, [marker]);
+
+    return memoizedMarker;
 }
 
 const styles = StyleSheet.create({
@@ -65,7 +70,7 @@ const styles = StyleSheet.create({
         height: 100,
         backgroundColor: '#f0f9fc',
         paddingVertical: 5,
-        paddingHorizontal: 7,
+        paddingHorizontal: 10,
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',

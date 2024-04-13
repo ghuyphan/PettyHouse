@@ -23,6 +23,7 @@ export default function BottomNav() {
             }}
             tabBar={({ navigation, state, descriptors, insets }) => (
                 <BottomNavigation.Bar
+                    shifting
                     navigationState={state}
                     safeAreaInsets={insets}
                     theme={{ colors: { primary: '#FFFF', secondaryContainer: '#d2edf7' } }}
@@ -113,9 +114,9 @@ export default function BottomNav() {
                     tabBarLabel: 'Cá nhân',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
-                            <Icon name="paw" size={size} color={color} />
+                            <Icon name="account" size={size} color={color} />
                         ) : (
-                            <Icon name="paw-outline" size={size} color={color} />
+                            <Icon name="account-outline" size={size} color={color} />
                         );
                     },
                 }}
@@ -127,9 +128,9 @@ export default function BottomNav() {
                     tabBarLabel: 'Tài khoản',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
-                            <Icon name="account" size={size} color={color} />
+                            <Icon name="cog" size={size} color={color} />
                         ) : (
-                            <Icon name="account-outline" size={size} color={color} />
+                            <Icon name="cog-outline" size={size} color={color} />
                         );
                     },
                 }}
