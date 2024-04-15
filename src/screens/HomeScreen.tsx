@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, BackHandler, Dimensions, Platform, Alert } from 'react-native';
-import { FAB, Text, ActivityIndicator } from 'react-native-paper';
+import { StyleSheet, View, BackHandler, Dimensions, Platform, Alert, Image } from 'react-native';
+import { FAB, Text, ActivityIndicator, Avatar } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -11,6 +11,7 @@ import Animated, {
     Easing,
     useAnimatedStyle,
 } from 'react-native-reanimated';
+import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
@@ -20,7 +21,7 @@ import CustomMarker from '../components/marker/marker';
 import * as Location from 'expo-location';
 import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
-import BottomSheetComponent from '../components/button/bottomSheet';
+// import BottomSheetComponent from '../components/bottomSheet/bottomSheet';
 import PopupDialog from '../components/modal/popupDialog';
 //API import
 import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
@@ -53,6 +54,7 @@ const HomeScreen = () => {
     const lastClickTime = useRef(0); // Store timestamp of last click (location fab)
 
     //Bottom sheet
+    const bottomSheetRef = useRef<BottomSheet>(null);
     const bottomSheetPosition = useSharedValue<number>(0);
     const windowHeight = Dimensions.get('window').height;
     const animatedFABStyle = useAnimatedStyle(() => {
@@ -95,11 +97,11 @@ const HomeScreen = () => {
         containerScale.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) });
     }
     const closePopupDialog = () => {
-        containerPosition.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });  
+        containerPosition.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
         containerScale.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
     }
-    const animateZoomMap = ( longtitude : number, latitude : number, zoomLevel: number, duration: number, doZoom: boolean) => {
-        if(doZoom) {
+    const animateZoomMap = (longtitude: number, latitude: number, zoomLevel: number, duration: number, doZoom: boolean) => {
+        if (doZoom) {
             mapRef.current?.animateCamera({
                 center: {
                     latitude: latitude,
@@ -109,7 +111,7 @@ const HomeScreen = () => {
                 heading: 0,
             }, { duration: duration });
             setZoomLevel(zoomLevel);
-        } else { 
+        } else {
             mapRef.current?.animateCamera({
                 center: {
                     latitude: latitude,
@@ -140,6 +142,7 @@ const HomeScreen = () => {
         const currentTime = Date.now();
         const timeSinceLastClick = currentTime - lastClickTime.current;
         const threshold = 500;
+        bottomSheetRef.current?.snapToIndex(0);
 
         const { status } = await Location.getForegroundPermissionsAsync();
 
@@ -156,9 +159,7 @@ const HomeScreen = () => {
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude
                 };  // Save last location
-                if (lastLocation.latitude !== location.coords.latitude || lastLocation.longitude !== location.coords.longitude) {
-                    await SecureStore.setItemAsync('lastLocation', JSON.stringify(lastLocation));
-                }
+                await SecureStore.setItemAsync('lastLocation', JSON.stringify(lastLocation));
 
                 if (currentRegion) {
                     const centerThreshold = 0.9;
@@ -198,7 +199,8 @@ const HomeScreen = () => {
     const handleFetchingPet = useCallback(async () => {
         const currentTime = Date.now();
         const timeSinceLastFetch = currentTime - lastFetchTime.current;
-        const threshold = 2000; // 3 seconds minimum between fetches
+        const threshold = 2000; // 2 seconds minimum between fetches
+        bottomSheetRef.current?.snapToIndex(0);
 
         if (isLoadingData || timeSinceLastFetch < threshold) {
             return; // Ignore the request if still loading or threshold not met
@@ -214,22 +216,34 @@ const HomeScreen = () => {
         } else {
             try {
                 const location = await Location.getCurrentPositionAsync({});
+                const lastLocation = {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude
+                };  // Save last location
+                await SecureStore.setItemAsync('lastLocation', JSON.stringify(lastLocation));
 
                 animateZoomMap(location.coords.longitude, location.coords.latitude, 15, 500, true);
                 openPopupDialog();
                 setIsError(false);
                 setpopupMessage(t('fetchingData'))
 
+                //Fetch posts within 2km hence the 2 for radius
                 const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
-
                 const newMarkers = records.map(record => ({
                     coordinate: {
                         latitude: record.latitude,
                         longitude: record.longitude
                     },
                     title: record.text,
+                    address: record.address || '-',
                     image: constructImageURL(record.image, record.id),
+                    like: record.like,
+                    dislike: record.dislike,
+                    username: record.expand?.user.username,
+                    avatar: record.expand?.user.avatar,
                 }));
+                // console.log('New markers:', newMarkers[5].address);
+                // console.log('Record:', records);
 
                 setMarkers(newMarkers);
                 setCircleProps({
@@ -356,12 +370,41 @@ const HomeScreen = () => {
                 textColor={'#8ac5db'}
                 isError={isError}
             />
-            <BottomSheetComponent
+            {/* <BottomSheetComponent
+                bottomSheetRef={bottomSheetRef}
                 title={haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}
                 onChange={handleSheetChanges}
                 animatedPosition={bottomSheetPosition}
                 snapPoint={haveRecordData ? [65, 300, 600] : [65]}
-            />
+            /> */}
+            <BottomSheet
+                ref={bottomSheetRef}
+                snapPoints={haveRecordData ? [65, 300, '90%'] : [65]}
+                onChange={handleSheetChanges}
+                style={{ backgroundColor: '#f0f9fc' }}
+                animatedPosition={bottomSheetPosition}
+            >
+                <Text style={{ fontSize: 20, paddingHorizontal: 20 }}>{haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}</Text>
+                    <BottomSheetFlatList
+                        data={markers}
+                        showsVerticalScrollIndicator
+                        renderItem={({ item }) => (
+                            <View style={{ padding: 20, marginBottom: 10, borderRadius: 15, flexDirection:'column' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+                                    {item.avatar ?
+                                        <Avatar.Image source={{ uri: item.avatar }} size={25} style={styles.avatar} /> :
+                                        <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={25} style={styles.avatar} />
+                                    }
+                                    <Text style={{ fontWeight: 'bold', fontSize: 14 }}>@{item.username}</Text>
+                                </View>
+                                <Text style={{fontSize: 15}}>
+                                    {item.title}
+                                </Text>
+                                <Image source={{ uri: item.image }} style={{ width: 100, height: 100, resizeMode: 'cover', borderRadius: 15 }} />
+                            </View>
+                        )}
+                    />
+            </BottomSheet>
         </View>
     );
 };
@@ -380,6 +423,12 @@ const styles = StyleSheet.create({
         right: 10,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    contentContainer: {
+        flex: 1,
+        // alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20
     },
 });
 

@@ -23,11 +23,11 @@ export default function BottomNav() {
             }}
             tabBar={({ navigation, state, descriptors, insets }) => (
                 <BottomNavigation.Bar
-                    shifting
                     navigationState={state}
                     safeAreaInsets={insets}
                     theme={{ colors: { primary: '#FFFF', secondaryContainer: '#d2edf7' } }}
                     activeColor='#8ac5db'
+                    // labeled={false}
                     onTabPress={({ route, preventDefault }) => {
                         const event = navigation.emit({
                             type: 'tabPress',

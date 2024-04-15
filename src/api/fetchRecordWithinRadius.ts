@@ -7,7 +7,8 @@ export async function fetchRecordsWithinRadius(centerLat: number, centerLon: num
     const boundingBox = calculateBoundingBox(centerLat, centerLon, radius);
 
     const potentialRecords = await pb.collection('posts').getList(1, 50, {
-      filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon}`
+      filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon}`,
+      expand: 'user'
     });
 
     const filteredRecords = potentialRecords.items.filter(record => {
