@@ -1,5 +1,6 @@
 
 interface TypeMarker {
+    id: string;
     coordinate: {
         latitude: number;
         longitude: number;

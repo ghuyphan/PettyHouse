@@ -36,9 +36,7 @@ const PopupDialog: React.FC<PopupDialogProps> = ({ isLoading = true, isError = f
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                     {isError ? <Icon source="alert-circle-outline" size={25} color={'#8ac5db'} /> :
                     <ActivityIndicator size="small" color={'#8ac5db'} /> }
-
-
-                    <Text style={{ color: textColor, fontWeight: 'bold', fontSize: 14 }}>{message}</Text>
+                    <Text style={{ color: textColor, fontWeight: 'bold', fontSize: 15 }}>{message}</Text>
                 </View>
             </Animated.View>
         </View>
@@ -55,9 +53,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         left: 20,
-        // right: 10,
+        right: 20,
         justifyContent: 'center',
         alignItems: 'center',
+        // backgroundColor: 'red',
     },
 });
 

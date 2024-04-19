@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, BackHandler, Dimensions, Platform, Alert, Image } from 'react-native';
-import { FAB, Text, ActivityIndicator, Avatar } from 'react-native-paper';
+import { StyleSheet, View, BackHandler, Dimensions, Platform, Image } from 'react-native';
+import { FAB, Text, ActivityIndicator, Avatar, Icon, Button } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -17,7 +17,7 @@ import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/botto
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
 import TextDialog from '../components/modal/textDialog'; // Adjust the path if needed
 import CustomMarker from '../components/marker/marker';
-// import pb from '../services/pocketBase';
+import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
 import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
@@ -29,6 +29,7 @@ import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
 //Type import
 import TypeMarker from '../types/markers';
 import TypeCirlce from '../types/mapCircle';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 const HomeScreen = () => {
     const [region, setRegion] = useState({
@@ -92,6 +93,8 @@ const HomeScreen = () => {
     const handleSheetChanges = useCallback((index: number) => {
         // console.log(bottomSheetPosition)
     }, []);
+
+    //Animation
     const openPopupDialog = () => {
         containerPosition.value = withTiming(90, { duration: 300, easing: Easing.inOut(Easing.ease) });
         containerScale.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) });
@@ -230,6 +233,7 @@ const HomeScreen = () => {
                 //Fetch posts within 2km hence the 2 for radius
                 const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
                 const newMarkers = records.map(record => ({
+                    id: record.id,
                     coordinate: {
                         latitude: record.latitude,
                         longitude: record.longitude
@@ -237,13 +241,11 @@ const HomeScreen = () => {
                     title: record.text,
                     address: record.address || '-',
                     image: constructImageURL(record.image, record.id),
-                    like: record.like,
+                    like: record.likeCount,
                     dislike: record.dislike,
                     username: record.expand?.user.username,
                     avatar: record.expand?.user.avatar,
                 }));
-                // console.log('New markers:', newMarkers[5].address);
-                // console.log('Record:', records);
 
                 setMarkers(newMarkers);
                 setCircleProps({
@@ -266,6 +268,35 @@ const HomeScreen = () => {
             }
         }
     }, [isLoadingData]);
+
+    const toggleLike = async (postId: string) => {
+        const token = await SecureStore.getItemAsync('authToken');
+    
+        try {
+            const response = await pb.send(`/api/posts/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+    
+            // Update likes on the markers
+            if (response.like) {
+                // Like action
+                setMarkers(prevMarkers => prevMarkers.map(marker => 
+                    marker.id === postId ? {...marker, like: marker.like + 1} : marker
+                ));
+            } else {
+                // Dislike action
+                setMarkers(prevMarkers => prevMarkers.map(marker => 
+                    marker.id === postId ? {...marker, like: marker.like - 1} : marker
+                ));
+            }
+    
+        } catch (error) {
+            console.error('Error toggling like:', error);
+        }
+    };
 
     useEffect(() => {
         const fetchLastLocation = async () => {
@@ -332,7 +363,7 @@ const HomeScreen = () => {
                 </MapView>
             )}
 
-            <SearchbarComponent onSearchUpdate={setSearchQuery} />
+            {/* <SearchbarComponent onSearchUpdate={setSearchQuery} /> */}
             <Animated.View style={animatedFABStyle}>
                 <FAB
                     style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
@@ -370,40 +401,58 @@ const HomeScreen = () => {
                 textColor={'#8ac5db'}
                 isError={isError}
             />
-            {/* <BottomSheetComponent
-                bottomSheetRef={bottomSheetRef}
-                title={haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}
-                onChange={handleSheetChanges}
-                animatedPosition={bottomSheetPosition}
-                snapPoint={haveRecordData ? [65, 300, 600] : [65]}
-            /> */}
             <BottomSheet
                 ref={bottomSheetRef}
-                snapPoints={haveRecordData ? [65, 300, '90%'] : [65]}
+                snapPoints={haveRecordData ? [65, 300, '85%'] : [65]}
                 onChange={handleSheetChanges}
-                style={{ backgroundColor: '#f0f9fc' }}
                 animatedPosition={bottomSheetPosition}
+                handleIndicatorStyle={{ backgroundColor: '#ccc' }}
+
             >
-                <Text style={{ fontSize: 20, paddingHorizontal: 20 }}>{haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}</Text>
-                    <BottomSheetFlatList
-                        data={markers}
-                        showsVerticalScrollIndicator
-                        renderItem={({ item }) => (
-                            <View style={{ padding: 20, marginBottom: 10, borderRadius: 15, flexDirection:'column' }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-                                    {item.avatar ?
-                                        <Avatar.Image source={{ uri: item.avatar }} size={25} style={styles.avatar} /> :
-                                        <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={25} style={styles.avatar} />
-                                    }
-                                    <Text style={{ fontWeight: 'bold', fontSize: 14 }}>@{item.username}</Text>
+                <BottomSheetFlatList
+                    data={markers}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={haveRecordData}
+                    ListHeaderComponent={<Text style={{ fontSize: 20, paddingHorizontal: 20, marginBottom: 20 }}>{haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}</Text>}
+                    renderItem={({ item }) => (
+                        <View style={styles.card}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                                {item.avatar ?
+                                    <Avatar.Image source={{ uri: item.avatar }} size={35} style={styles.avatar} /> :
+                                    <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color='#fff' />
+                                }
+                                <View style={{ flexDirection: 'column', gap: 5 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '95%' }}>
+                                        <Text style={styles.userName}>@{item.username}</Text>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                        <Text style={{ color: '#888', fontSize: 13, width: '93%' }} numberOfLines={1}>{item.address}</Text>
+                                    </View>
                                 </View>
-                                <Text style={{fontSize: 15}}>
-                                    {item.title}
-                                </Text>
-                                <Image source={{ uri: item.image }} style={{ width: 100, height: 100, resizeMode: 'cover', borderRadius: 15 }} />
                             </View>
-                        )}
-                    />
+                            <Text style={{ fontSize: 15, marginBottom: 10 }}>
+                                {item.title}
+                            </Text>
+                            <Image source={{ uri: item.image }} style={{ width: '100%', aspectRatio: 1, resizeMode: 'cover', borderRadius: 15 }} />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                <TouchableOpacity onPress={() => toggleLike(item.id)}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 20 }}>
+                                        <Icon source="heart" size={25} color={'#FAA0A0'} />
+                                        <Text style={{ color: '#FAA0A0', fontSize: 15 }}>{item.like}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => updateLike(item.id)}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 20 }}>
+                                        <Icon source="heart" size={25} color={'#FAA0A0'} />
+                                        <Text style={{ color: '#FAA0A0', fontSize: 15 }}>{item.like}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={{ backgroundColor: '#f0f9fc', height: 5, width: '100%', marginTop: 20, marginBottom: 20, borderRadius: 5 }} />
+                        </View>
+                    )}
+                />
             </BottomSheet>
         </View>
     );
@@ -430,6 +479,21 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 20
     },
+    card: {
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        marginHorizontal: 20,
+        flexDirection: 'column'
+    },
+    avatar: {
+    },
+    userName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#8ac5db',
+    },
+
+
 });
 
 export default HomeScreen;

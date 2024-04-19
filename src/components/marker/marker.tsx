@@ -6,6 +6,7 @@ import { BlurView } from 'expo-blur';
 import { Text, Icon, Divider, Avatar } from 'react-native-paper';
 
 interface MapMarker {
+    id: string;
     coordinate: {
         latitude: number;
         longitude: number;
@@ -39,23 +40,22 @@ const CustomMarker = ({ marker }: { marker: MapMarker; index: number }) => {
                 />
             </View>
 
-            <Callout tooltip style={styles.callout}>
+            <Callout tooltip style={styles.callout} onPress={() => {console.log(marker)}}>
                 <View style={[styles.bubble]}>
                     <View style={{ flexDirection: 'row', gap: 5, width: '100%', marginBottom: 10, alignItems: 'center', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
                             {marker.avatar ?
                                 <Avatar.Image source={{ uri: marker.avatar }} size={20} style={styles.avatar} /> :
-                                <Avatar.Text label={marker.username.slice(0, 2).toUpperCase()} size={20} style={styles.avatar} />}
+                                <Avatar.Text label={marker.username.slice(0, 2).toUpperCase()} size={20} style={styles.avatar} color='#fff' />}
                             <Text style={styles.userName}>@{marker.username}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 2, alignItems: 'center' }}>
-                            <Icon source="heart-outline" size={13} color={'#888'} />
-                            <Text style={{ color: '#888', fontSize: 12 }}>{marker.like}</Text>
+                            <Icon source="thumb-up" size={13} color={'#FAA0A0'} />
+                            <Text style={{ color: '#FAA0A0', fontSize: 12 }}>{marker.like}</Text>
                         </View>
                     </View>
-                    <Text style={{ width: '100%', fontWeight: 'bold', fontSize: 13, color: '#555' }}>{marker.title}</Text>
+                    <Text style={{ width: '100%', fontSize: 13 }}>{marker.title}</Text>
                     <View style={{ flexDirection: 'column', gap: 2, marginTop: 2, width: '100%', alignItems: 'flex-start' }}>
-
                         <Text style={{ color: '#888', fontSize: 13, width: '100%' }}>{marker.address}</Text>
 
                     </View>
@@ -89,23 +89,24 @@ const styles = StyleSheet.create({
         width: 20,
         aspectRatio: 1,
         borderRadius: 50,
-        backgroundColor: '#333',
+        backgroundColor: '#8ac5db',
     },
     userName: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#333'
+        color: '#8ac5db',
     },
     callout: {
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: -5
     },
+    
     bubble: {
         width: 260,
         // height: 100,
         flexDirection: 'column',
-        backgroundColor: '#fff',
+        backgroundColor: '#ffff',
         padding: 10,
         paddingHorizontal: 10,
         borderRadius: 15,

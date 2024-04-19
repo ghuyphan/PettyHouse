@@ -42,6 +42,7 @@ const TextDialog: React.FC<textDialogProps> = ({
 const styles = StyleSheet.create({
     title: {
         textAlign: 'center',
+        // fontSize: 23
     }
 });
 
