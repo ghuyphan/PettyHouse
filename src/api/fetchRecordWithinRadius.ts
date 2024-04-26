@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { getDistanceFromLatLonInKm, calculateBoundingBox } from '../utils/distanceUtils';
 import pb from '../services/pocketBase';
 
@@ -8,7 +7,7 @@ export async function fetchRecordsWithinRadius(centerLat: number, centerLon: num
 
     const potentialRecords = await pb.collection('posts').getList(1, 50, {
       filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon}`,
-      expand: 'user' 
+      expand: 'user,likes_via_post_id',
     });
 
     const filteredRecords = potentialRecords.items.filter(record => {

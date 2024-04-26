@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, BackHandler, Dimensions, Platform, Image } from 'react-native';
-import { FAB, Text, ActivityIndicator, Avatar, Icon, Button } from 'react-native-paper';
+import { StyleSheet, View, BackHandler, Platform, useWindowDimensions } from 'react-native';
+import { FAB, Text, ActivityIndicator, Button } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -10,26 +10,29 @@ import Animated, {
     withTiming,
     Easing,
     useAnimatedStyle,
+    interpolate,
 } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList, BottomSheetFlatListMethods } from '@gorhom/bottom-sheet';
+import { debounce } from 'lodash';
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
 import TextDialog from '../components/modal/textDialog'; // Adjust the path if needed
+import SliderDialog from '../components/modal/sliderDialog';
 import CustomMarker from '../components/marker/marker';
 import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
 import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
-// import BottomSheetComponent from '../components/bottomSheet/bottomSheet';
+import BottomSheetItem from '../components/bottomSheet/bottomSheetItem';
 import PopupDialog from '../components/modal/popupDialog';
+
 //API import
 import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
 
 //Type import
 import TypeMarker from '../types/markers';
 import TypeCirlce from '../types/mapCircle';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 
 const HomeScreen = () => {
     const [region, setRegion] = useState({
@@ -44,9 +47,12 @@ const HomeScreen = () => {
     const [circleProps, setCircleProps] = useState<TypeCirlce | null>(null);
     const userData = useSelector((state: RootState) => state.user.userData);
     const [isVisible, setIsVisible] = useState(false);
+    const [sliderVisible, setSliderVisible] = useState(false);
     const mapRef = useRef<MapView>(null);
     const [markers, setMarkers] = useState<TypeMarker[]>([]);
     const [isLoadingRegion, setIsLoadingRegion] = useState(false);
+    const [radius, setRadius] = useState(2);
+    
 
     const [zoomLevel, setZoomLevel] = useState(0);
     //Timer to prevent multiple button spam
@@ -56,32 +62,55 @@ const HomeScreen = () => {
 
     //Bottom sheet
     const bottomSheetRef = useRef<BottomSheet>(null);
+    const flatListRef = useRef<BottomSheetFlatListMethods>(null);
     const bottomSheetPosition = useSharedValue<number>(0);
-    const windowHeight = Dimensions.get('window').height;
+    const { height: windowHeight } = useWindowDimensions();
+    const FABOffset = Platform.OS === 'ios' ? (windowHeight < 700 ? 150 : 170) : 90;
+    const maxOffsetRatio = windowHeight < 700 ? 0.65 : 0.7;
+    const maxOffset = windowHeight * maxOffsetRatio;
+    const [bottomSheetSnapPoint, setBottomSheetSnapPoint] = useState(0);
+
     const animatedFABStyle = useAnimatedStyle(() => {
         const availableSpace = windowHeight - bottomSheetPosition.value;
-        let maxOffset = 0;
-        let FABOffset = 0;
-        if (windowHeight < 700) {
-            FABOffset = Platform.OS === 'ios' ? 150 : 90;
-            maxOffset = windowHeight * 0.65;
-        } else {
-            FABOffset = Platform.OS === 'ios' ? 170 : 90;
-            maxOffset = windowHeight * 0.7;
-        }
         const maxBottomPosition = windowHeight - maxOffset;
-
-        let calculatedFABPosition = availableSpace - FABOffset;
-
-        // Limit upward movement when enough space is available
-        if (calculatedFABPosition > maxBottomPosition) {
-            calculatedFABPosition = maxBottomPosition;
-        }
+        const calculatedFABPosition = Math.min(availableSpace - FABOffset, maxBottomPosition);
 
         return {
             bottom: calculatedFABPosition,
         };
     });
+    const headerAnimatedStyle = useAnimatedStyle(() => {
+        const relativePosition = windowHeight - bottomSheetPosition.value;
+        const opacity = interpolate(
+            relativePosition,
+            [bottomSheetSnapPoint - 50, bottomSheetSnapPoint],
+            [1, 0],
+            'clamp'
+        );
+        const marginBottom = interpolate(
+            relativePosition,
+            [bottomSheetSnapPoint - 50, bottomSheetSnapPoint],
+            [20, 10],
+            'clamp'
+        );
+        const height = interpolate(
+            relativePosition,
+            [bottomSheetSnapPoint - 50, bottomSheetSnapPoint],
+            [30, 0],
+            'clamp'
+        );
+
+        return {
+            opacity,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom,
+            paddingHorizontal: 20,
+            height,
+        };
+    });
+
 
     //Popup dialog animation 
     const containerPosition = useSharedValue(0);
@@ -89,20 +118,25 @@ const HomeScreen = () => {
     const [isError, setIsError] = useState(false);
     const [haveRecordData, setHaveRecordData] = useState(false);
     const [popupMessage, setpopupMessage] = useState('');
-    // callbacks
     const handleSheetChanges = useCallback((index: number) => {
-        // console.log(bottomSheetPosition)
+        if (haveRecordData === true) {
+            if (index === 0) {
+                flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+            }
+        }
     }, []);
 
     //Animation
-    const openPopupDialog = () => {
+    const openPopupDialog = useCallback(() => {
         containerPosition.value = withTiming(90, { duration: 300, easing: Easing.inOut(Easing.ease) });
         containerScale.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) });
-    }
-    const closePopupDialog = () => {
+    }, []);
+
+    const closePopupDialog = useCallback(() => {
         containerPosition.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
         containerScale.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
-    }
+    }, []);
+
     const animateZoomMap = (longtitude: number, latitude: number, zoomLevel: number, duration: number, doZoom: boolean) => {
         if (doZoom) {
             mapRef.current?.animateCamera({
@@ -200,6 +234,7 @@ const HomeScreen = () => {
     }, [lastClickTime, zoomLevel]);
 
     const handleFetchingPet = useCallback(async () => {
+        console.log(radius)
         const currentTime = Date.now();
         const timeSinceLastFetch = currentTime - lastFetchTime.current;
         const threshold = 2000; // 2 seconds minimum between fetches
@@ -208,94 +243,139 @@ const HomeScreen = () => {
         if (isLoadingData || timeSinceLastFetch < threshold) {
             return; // Ignore the request if still loading or threshold not met
         }
-        const { status } = await Location.getForegroundPermissionsAsync();
 
-        setIsLoadingData(true); // Start loading indicator
-        if (status !== 'granted') {
-            lastFetchTime.current = currentTime;
-            setIsLoadingData(false);
-            setIsVisible(true);
-            return;
-        } else {
-            try {
-                const location = await Location.getCurrentPositionAsync({});
-                const lastLocation = {
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
-                };  // Save last location
-                await SecureStore.setItemAsync('lastLocation', JSON.stringify(lastLocation));
+        setIsLoadingData(true);
+        lastFetchTime.current = currentTime; // Update last fetch time early to prevent multiple triggers
 
-                animateZoomMap(location.coords.longitude, location.coords.latitude, 15, 500, true);
-                openPopupDialog();
-                setIsError(false);
-                setpopupMessage(t('fetchingData'))
-
-                //Fetch posts within 2km hence the 2 for radius
-                const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, 2);
-                const newMarkers = records.map(record => ({
-                    id: record.id,
-                    coordinate: {
-                        latitude: record.latitude,
-                        longitude: record.longitude
-                    },
-                    title: record.text,
-                    address: record.address || '-',
-                    image: constructImageURL(record.image, record.id),
-                    like: record.likeCount,
-                    dislike: record.dislike,
-                    username: record.expand?.user.username,
-                    avatar: record.expand?.user.avatar,
-                }));
-
-                setMarkers(newMarkers);
-                setCircleProps({
-                    center: {
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude,
-                    },
-                    radius: 2000,
-                });
-            } catch (error) {
-                console.error('Error fetching records:', error);
-                setHaveRecordData(false);
-            } finally {
-                setTimeout(() => {
-                    closePopupDialog();
-                    setIsLoadingData(false); // Stop loading indicator
-                }, 1200);
-                lastFetchTime.current = currentTime;
-                setHaveRecordData(true);
+        try {
+            const { status } = await Location.getForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setIsVisible(true);
+                throw new Error('Location permission not granted');
             }
+
+            const location = await Location.getCurrentPositionAsync({});
+            await SecureStore.setItemAsync('lastLocation', JSON.stringify({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            }));
+
+            animateZoomMap(location.coords.longitude, location.coords.latitude, 15, 500, true);
+            openPopupDialog();
+            setIsError(false);
+            setpopupMessage(t('fetchingData'));
+
+            // Fetch posts within 2km hence the 2 for radius
+            const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, radius);
+            const newMarkers = records.map(record => ({
+                id: record.id,
+                coordinate: {
+                    latitude: record.latitude,
+                    longitude: record.longitude
+                },
+                title: record.text,
+                address: record.address || '-',
+                image: constructImageURL(record.image, record.id),
+                like: record.likeCount,
+                hasLiked: record.expand?.likes_via_post_id?.some((like) => like.user_id === userData?.id) || false,
+                dislike: record.dislikeCount,
+                username: record.expand?.user.username,
+                avatar: record.expand?.user.avatar,
+                created: record.created
+            }));
+
+            setMarkers(newMarkers);
+            setCircleProps({
+                center: {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                },
+                radius: radius * 1000,
+            });
+
+            setHaveRecordData(true);
+        } catch (error) {
+            console.error('Error fetching records:', error);
+            setHaveRecordData(false);
+            setIsError(true);
+            setpopupMessage(t('errorFetchingData'));
+            openPopupDialog();
+        } finally {
+            setTimeout(() => {
+                closePopupDialog();
+                setIsLoadingData(false); // Stop loading indicator
+            }, 1200);
         }
-    }, [isLoadingData]);
+    }, [isLoadingData, t, userData?.id]); // Ensure all necessary dependencies are included
+
+    const updateRadius  = async (value: number) => {
+        setRadius(value);
+        SecureStore.setItemAsync('radius', value.toString());
+        setSliderVisible(false);
+    };
+    useEffect(() => {
+        // This code runs after `radius` has been updated
+        console.log("Radius updated to:", radius);
+        // You can trigger any action here that needs to happen right after the radius updates
+    }, [radius]);  // Dependency array, this effect runs when `radius` changes
+    
+
 
     const toggleLike = async (postId: string) => {
         const token = await SecureStore.getItemAsync('authToken');
-    
+
         try {
-            const response = await pb.send(`/api/posts/${postId}/like`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-    
-            // Update likes on the markers
-            if (response.like) {
-                // Like action
-                setMarkers(prevMarkers => prevMarkers.map(marker => 
-                    marker.id === postId ? {...marker, like: marker.like + 1} : marker
-                ));
-            } else {
-                // Dislike action
-                setMarkers(prevMarkers => prevMarkers.map(marker => 
-                    marker.id === postId ? {...marker, like: marker.like - 1} : marker
-                ));
-            }
-    
+            // Track if a toggle request is already in progress
+            let isRequestInProgress = false;
+            setMarkers(prevMarkers => prevMarkers.map(marker =>
+                marker.id === postId ? { ...marker, like: marker.hasLiked ? marker.like - 1 : marker.like + 1, hasLiked: !marker.hasLiked } : marker
+            ));
+
+            // Modify the toggle behavior
+            const toggle = async () => {
+                if (isRequestInProgress) return;
+
+                isRequestInProgress = true;
+                await pb.send(`/api/posts/${postId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                isRequestInProgress = false;
+            };
+
+            // Now directly call the toggle function
+            toggle();
+
         } catch (error) {
-            console.error('Error toggling like:', error);
+            setMarkers(prevMarkers => prevMarkers.map(marker =>
+                marker.id === postId ? { ...marker, like: marker.hasLiked ? marker.like - 1 : marker.like + 1, hasLiked: !marker.hasLiked } : marker
+            ));
+            // Handle error
+            setpopupMessage('Error');
+            openPopupDialog();
+            setTimeout(() => {
+                closePopupDialog();
+            }, 2000);
+
         }
+    };
+
+    const debouncedToggleLike = useRef(debounce(toggleLike, 800)).current;
+
+    const handleSearchBarLayout = (searchbarBottom: number) => {
+        // Define the desired space between the search bar and the bottom sheet
+        let desiredSpace = 0;
+        if (windowHeight < 700) {
+            Platform.OS === 'ios' ? desiredSpace = 60 : desiredSpace = 20;
+        } else {
+            Platform.OS === 'ios' ? desiredSpace = 100 : desiredSpace = 15;
+        }
+
+        // Calculate the snap point for the bottom sheet, including the desired space
+        const snapPoint = windowHeight - searchbarBottom - desiredSpace;
+        setBottomSheetSnapPoint(snapPoint);
     };
 
     useEffect(() => {
@@ -323,10 +403,18 @@ const HomeScreen = () => {
             }
             setIsLoadingRegion(false);
         }
+        const radius = async () => {
+            await SecureStore.getItemAsync('radius').then((value) => {
+                if (value) {
+                    setRadius(parseInt(value));
+                }
+            })
+        }
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             return true;
         });
         fetchLastLocation();
+        radius();
         return () => backHandler.remove();
     }, []);
 
@@ -350,7 +438,7 @@ const HomeScreen = () => {
                 >
 
                     {markers.map((marker, index) => (
-                        <CustomMarker key={index} marker={marker} index={index} />
+                        <CustomMarker key={index} marker={marker} index={index} bottomSheetRef={bottomSheetRef} flatListRef={flatListRef} />
                     ))}
                     {circleProps && (
                         <Circle
@@ -362,9 +450,15 @@ const HomeScreen = () => {
                     )}
                 </MapView>
             )}
-
-            {/* <SearchbarComponent onSearchUpdate={setSearchQuery} /> */}
             <Animated.View style={animatedFABStyle}>
+                <Button
+                    mode='elevated'
+                    style={{ position: 'absolute', bottom: 80, left: 20, borderRadius: 50 }}
+                    onPress={() => setSliderVisible(true)}
+                    icon={'radar'}
+                    labelStyle={{ fontSize: 16, color: '#8ac5db' }}
+                > {radius}
+                </Button>
                 <FAB
                     style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
                     icon={zoomLevel === 15 ? 'crosshairs-gps' : 'compass'}
@@ -393,6 +487,16 @@ const HomeScreen = () => {
                 content={t('locationPermissionContent')}
                 confirmLabel={t('locationPermissionButton')}
             />
+            <SliderDialog
+                dismissable={true}
+                isVisible={sliderVisible}
+                onDismiss={() => setSliderVisible(false)}
+                onConfirm={updateRadius}
+                title={t('radiusSliderTitle')}
+                radius={radius}
+                dismissLabel={t('cancelButton')}
+                confirmLabel={t('changeButton')}
+            />
             <PopupDialog
                 isLoading={isLoadingData}
                 message={popupMessage}
@@ -403,57 +507,40 @@ const HomeScreen = () => {
             />
             <BottomSheet
                 ref={bottomSheetRef}
-                snapPoints={haveRecordData ? [65, 300, '85%'] : [65]}
-                onChange={handleSheetChanges}
+                snapPoints={haveRecordData ? [65, 300, bottomSheetSnapPoint] : [65]}
                 animatedPosition={bottomSheetPosition}
                 handleIndicatorStyle={{ backgroundColor: '#ccc' }}
+                onChange={handleSheetChanges}
 
             >
                 <BottomSheetFlatList
+                    ref={flatListRef}
                     data={markers}
                     showsVerticalScrollIndicator={false}
                     scrollEnabled={haveRecordData}
-                    ListHeaderComponent={<Text style={{ fontSize: 20, paddingHorizontal: 20, marginBottom: 20 }}>{haveRecordData ? 'Lastest in your area' : "Let search to find nearby pet"}</Text>}
+                    stickyHeaderHiddenOnScroll={true}
+                    ListHeaderComponent={
+                        <Animated.View style={headerAnimatedStyle}>
+                            <Text style={{ fontSize: 20 }}>{haveRecordData ? t('lastestInYourArea') : "Let search to find nearby pet"}</Text>
+                        </Animated.View>
+                    }
                     renderItem={({ item }) => (
-                        <View style={styles.card}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                                {item.avatar ?
-                                    <Avatar.Image source={{ uri: item.avatar }} size={35} style={styles.avatar} /> :
-                                    <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color='#fff' />
-                                }
-                                <View style={{ flexDirection: 'column', gap: 5 }}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '95%' }}>
-                                        <Text style={styles.userName}>@{item.username}</Text>
-                                    </View>
+                        <BottomSheetItem
+                            item={item}
+                            toggleLike={() => debouncedToggleLike(item.id)}
+                            isLastItem={markers.indexOf(item) === markers.length - 1}
+                        />
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                        <Text style={{ color: '#888', fontSize: 13, width: '93%' }} numberOfLines={1}>{item.address}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            <Text style={{ fontSize: 15, marginBottom: 10 }}>
-                                {item.title}
-                            </Text>
-                            <Image source={{ uri: item.image }} style={{ width: '100%', aspectRatio: 1, resizeMode: 'cover', borderRadius: 15 }} />
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                <TouchableOpacity onPress={() => toggleLike(item.id)}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 20 }}>
-                                        <Icon source="heart" size={25} color={'#FAA0A0'} />
-                                        <Text style={{ color: '#FAA0A0', fontSize: 15 }}>{item.like}</Text>
-                                    </View>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => updateLike(item.id)}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 20 }}>
-                                        <Icon source="heart" size={25} color={'#FAA0A0'} />
-                                        <Text style={{ color: '#FAA0A0', fontSize: 15 }}>{item.like}</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            </View>
-                            <View style={{ backgroundColor: '#f0f9fc', height: 5, width: '100%', marginTop: 20, marginBottom: 20, borderRadius: 5 }} />
-                        </View>
                     )}
                 />
             </BottomSheet>
+            <SearchbarComponent
+                onSearchUpdate={setSearchQuery}
+                onSearchBarLayout={handleSearchBarLayout}
+                bottomSheetPosition={bottomSheetPosition}
+                lastSnapPoint={bottomSheetSnapPoint}
+                bottomSheetRef={bottomSheetRef}
+            />
         </View>
     );
 };
@@ -479,21 +566,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 20
     },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 15,
-        marginHorizontal: 20,
-        flexDirection: 'column'
-    },
-    avatar: {
-    },
-    userName: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#8ac5db',
-    },
-
-
 });
 
 export default HomeScreen;

@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { Callout, Marker } from "react-native-maps";
 import { StyleSheet, View, Image } from 'react-native';
-import { BlurView } from 'expo-blur';
-// import { Image } from 'expo-image';
-import { Text, Icon, Divider, Avatar } from 'react-native-paper';
+import { Text, Icon, Avatar } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 
 interface MapMarker {
     id: string;
@@ -18,16 +17,30 @@ interface MapMarker {
     dislike: number;
     username: string;
     avatar: string;
+    created: string;
 }
 
-const CustomMarker = ({ marker }: { marker: MapMarker; index: number }) => {
+interface CustomMarkerProps {
+    marker: MapMarker;
+    index: number;
+    bottomSheetRef: React.RefObject<any>;
+    flatListRef: React.RefObject<any>;  // Type should be adjusted to match the actual ref type you are using
+}
+
+const CustomMarker: React.FC<CustomMarkerProps> = memo(({ marker, index, bottomSheetRef, flatListRef }) => {
+    const { t } = useTranslation();
+
+    const handleCalloutPress = useCallback(() => {
+        bottomSheetRef.current?.expand();
+        setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index, animated: true });
+        }, 500);
+    }, [index, bottomSheetRef, flatListRef]);
 
     return (
         <Marker
             coordinate={marker.coordinate}
             title={marker.title}
-            description="Hello world dashjkdhasjlhdajskhdhja"
-        // tracksViewChanges={false}
         >
             <View style={styles.container}>
                 <Image
@@ -39,32 +52,30 @@ const CustomMarker = ({ marker }: { marker: MapMarker; index: number }) => {
                     style={styles.markerImage}
                 />
             </View>
-
-            <Callout tooltip style={styles.callout} onPress={() => {console.log(marker)}}>
-                <View style={[styles.bubble]}>
-                    <View style={{ flexDirection: 'row', gap: 5, width: '100%', marginBottom: 10, alignItems: 'center', justifyContent: 'space-between' }}>
-                        <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
-                            {marker.avatar ?
-                                <Avatar.Image source={{ uri: marker.avatar }} size={20} style={styles.avatar} /> :
-                                <Avatar.Text label={marker.username.slice(0, 2).toUpperCase()} size={20} style={styles.avatar} color='#fff' />}
-                            <Text style={styles.userName}>@{marker.username}</Text>
+            <Callout tooltip style={styles.callout} onPress={handleCalloutPress}>
+                <View style={styles.bubble}>
+                    <View style={styles.row}>
+                        <View style={styles.userRow}>
+                        {marker.avatar ?
+                            <Avatar.Image source={{ uri: marker.avatar }} size={20} style={styles.avatar} /> :
+                            <Avatar.Text label={marker.username.slice(0, 2).toUpperCase()} size={20} style={styles.avatar} color='#fff' />
+                        }
+                        <Text style={styles.userName}>@{marker.username}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 2, alignItems: 'center' }}>
-                            <Icon source="thumb-up" size={13} color={'#FAA0A0'} />
-                            <Text style={{ color: '#FAA0A0', fontSize: 12 }}>{marker.like}</Text>
+                        <View style={styles.likesRow}>
+                            <Text style={styles.likes}>{marker.like}</Text>
+                            <Icon source="thumb-up" size={13} color={'#8ac5db'} />
                         </View>
                     </View>
-                    <Text style={{ width: '100%', fontSize: 13 }}>{marker.title}</Text>
-                    <View style={{ flexDirection: 'column', gap: 2, marginTop: 2, width: '100%', alignItems: 'flex-start' }}>
-                        <Text style={{ color: '#888', fontSize: 13, width: '100%' }}>{marker.address}</Text>
-
-                    </View>
+                    <Text style={styles.title}>{marker.title}</Text>
+                    <Text style={styles.address}>{marker.address}</Text>
+                    <Text style={styles.goToPost}>{t('goToPost')}</Text>
                 </View>
                 <View style={styles.arrowBorder} />
             </Callout>
-        </Marker >
+        </Marker>
     );
-}
+});
 
 const styles = StyleSheet.create({
     container: {
@@ -74,7 +85,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     markerIcon: {
-        position: 'absolute',  // Add position absolute
+        position: 'absolute',
         width: '140%',
         height: '140%',
         bottom: -10,
@@ -101,10 +112,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: -5
     },
-    
     bubble: {
         width: 260,
-        // height: 100,
         flexDirection: 'column',
         backgroundColor: '#ffff',
         padding: 10,
@@ -120,10 +129,46 @@ const styles = StyleSheet.create({
         borderStyle: 'solid',
         borderLeftWidth: 10,
         borderRightWidth: 10,
-        borderTopWidth: 8,  // Height of the triangle
+        borderTopWidth: 8,
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
         borderTopColor: '#fff',
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 10,
+        justifyContent: 'space-between'
+    },
+    userRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+    },
+    likesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+    },
+    likes: {
+        color: '#8ac5db',
+        fontSize: 12,
+    },
+    title: {
+        width: '100%',
+        fontSize: 13,
+    },
+    address: {
+        color: '#888',
+        fontSize: 13,
+        width: '100%',
+        marginTop: 2,
+    },
+    goToPost: {
+        color: '#8ac5db',
+        fontSize: 13,
+        width: '100%',
     }
 });
 

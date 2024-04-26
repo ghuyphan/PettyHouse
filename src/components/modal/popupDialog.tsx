@@ -14,7 +14,7 @@ interface PopupDialogProps {
 }
 
 
-const PopupDialog: React.FC<PopupDialogProps> = ({ isLoading = true, isError = false, message, containerPosition, containerScale, textColor }) => {
+const PopupDialog: React.FC<PopupDialogProps> = ({ isLoading = false, isError = false, message, containerPosition, containerScale, textColor }) => {
     // if (!isLoading) return null;
     const animatedLoadingStyle = useAnimatedStyle(() => {
         return {
@@ -35,7 +35,7 @@ const PopupDialog: React.FC<PopupDialogProps> = ({ isLoading = true, isError = f
             <Animated.View style={{ ...animatedLoadingStyle }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                     {isError ? <Icon source="alert-circle-outline" size={25} color={'#8ac5db'} /> :
-                    <ActivityIndicator size="small" color={'#8ac5db'} /> }
+                    <ActivityIndicator animating={isLoading} size="small" color={'#8ac5db'} /> }
                     <Text style={{ color: textColor, fontWeight: 'bold', fontSize: 15 }}>{message}</Text>
                 </View>
             </Animated.View>

@@ -9,9 +9,11 @@ interface TypeMarker {
     address: string;
     image: string;
     like: number;
+    hasLiked: boolean;
     dislike: number;
     username: string;
     avatar: string;
+    created: string;
 }
 
 export default TypeMarker
