@@ -123,8 +123,8 @@ const RequestPasswordScreen = () => {
                             mode='outlined'
                             style={styles.input}
                             label={t('email')}
-                            left={<TextInput.Icon icon="email" color="#b5e1eb" />}
-                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent'}} icon="email" color="#b5e1eb" />}
+                            right={email.length > 0 ? <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="close" color="#b5e1eb" onPress={() => setEmail('')} /> : null}
                             value={email}
                             onChangeText={setEmail}
                             outlineColor='#ccc'

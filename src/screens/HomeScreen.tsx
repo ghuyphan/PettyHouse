@@ -121,10 +121,11 @@ const HomeScreen = () => {
     const handleSheetChanges = useCallback((index: number) => {
         if (haveRecordData === true) {
             if (index === 0) {
-                flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+                flatListRef.current?.scrollToIndex({ index: 0, animated: false });
             }
         }
-    }, []);
+    }, [haveRecordData, flatListRef]); // Make sure flatListRef is stable
+    
 
     //Animation
     const openPopupDialog = useCallback(() => {
@@ -233,8 +234,7 @@ const HomeScreen = () => {
         }
     }, [lastClickTime, zoomLevel]);
 
-    const handleFetchingPet = useCallback(async () => {
-        console.log(radius)
+    const handleFetchingPet = useCallback(async (currentRadius: number) => {
         const currentTime = Date.now();
         const timeSinceLastFetch = currentTime - lastFetchTime.current;
         const threshold = 2000; // 2 seconds minimum between fetches
@@ -266,7 +266,7 @@ const HomeScreen = () => {
             setpopupMessage(t('fetchingData'));
 
             // Fetch posts within 2km hence the 2 for radius
-            const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, radius);
+            const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, currentRadius);
             const newMarkers = records.map(record => ({
                 id: record.id,
                 coordinate: {
@@ -290,7 +290,7 @@ const HomeScreen = () => {
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,
                 },
-                radius: radius * 1000,
+                radius: currentRadius * 1000,
             });
 
             setHaveRecordData(true);
@@ -313,14 +313,7 @@ const HomeScreen = () => {
         SecureStore.setItemAsync('radius', value.toString());
         setSliderVisible(false);
     };
-    useEffect(() => {
-        // This code runs after `radius` has been updated
-        console.log("Radius updated to:", radius);
-        // You can trigger any action here that needs to happen right after the radius updates
-    }, [radius]);  // Dependency array, this effect runs when `radius` changes
     
-
-
     const toggleLike = async (postId: string) => {
         const token = await SecureStore.getItemAsync('authToken');
 
@@ -364,6 +357,41 @@ const HomeScreen = () => {
 
     const debouncedToggleLike = useRef(debounce(toggleLike, 800)).current;
 
+    const toggleReport = async (postId: string) => {
+        const token = await SecureStore.getItemAsync('authToken');
+
+        try {
+            // Track if a toggle request is already in progress
+            let isRequestInProgress = false;
+            // Modify the toggle behavior
+            const toggle = async () => {
+                if (isRequestInProgress) return;
+
+                isRequestInProgress = true;
+                const response = await pb.send(`/api/posts/${postId}/report`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                isRequestInProgress = false;
+                console.log(response);
+            };
+
+            // Now directly call the toggle function
+            toggle();
+
+        } catch (error) {
+            // Handle error
+            setpopupMessage('Error');
+            openPopupDialog();
+            setTimeout(() => {
+                closePopupDialog();
+            }, 2000);
+
+        }
+    }
+
     const handleSearchBarLayout = (searchbarBottom: number) => {
         // Define the desired space between the search bar and the bottom sheet
         let desiredSpace = 0;
@@ -379,6 +407,11 @@ const HomeScreen = () => {
     };
 
     useEffect(() => {
+        SecureStore.getItemAsync('radius').then((value) => {
+            if (value) {
+                setRadius(parseInt(value));
+            }
+        });
         const fetchLastLocation = async () => {
             setIsLoadingRegion(true);
             const lastLocationString = await SecureStore.getItemAsync('lastLocation');
@@ -403,18 +436,10 @@ const HomeScreen = () => {
             }
             setIsLoadingRegion(false);
         }
-        const radius = async () => {
-            await SecureStore.getItemAsync('radius').then((value) => {
-                if (value) {
-                    setRadius(parseInt(value));
-                }
-            })
-        }
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             return true;
         });
         fetchLastLocation();
-        radius();
         return () => backHandler.remove();
     }, []);
 
@@ -451,14 +476,15 @@ const HomeScreen = () => {
                 </MapView>
             )}
             <Animated.View style={animatedFABStyle}>
-                <Button
+                <FAB 
+                    size='small'
                     mode='elevated'
-                    style={{ position: 'absolute', bottom: 80, left: 20, borderRadius: 50 }}
+                    style={{ position: 'absolute', bottom: 80, left: 20, borderRadius: 50}}
                     onPress={() => setSliderVisible(true)}
                     icon={'radar'}
-                    labelStyle={{ fontSize: 16, color: '#8ac5db' }}
-                > {radius}
-                </Button>
+                    color={'#8ac5db'}
+                > 
+                </FAB>
                 <FAB
                     style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
                     icon={zoomLevel === 15 ? 'crosshairs-gps' : 'compass'}
@@ -472,7 +498,9 @@ const HomeScreen = () => {
                     style={{ position: 'absolute', bottom: 80, right: 20, backgroundColor: '#8ac5db' }}
                     color={'#fff'}
                     icon="paw"
-                    onPress={handleFetchingPet}
+                    onPress={() => {
+                        handleFetchingPet(radius)
+                    }}
                     variant='primary'
                     rippleColor={'#f0f9fc'}
                     disabled={isLoadingData}
@@ -521,13 +549,14 @@ const HomeScreen = () => {
                     stickyHeaderHiddenOnScroll={true}
                     ListHeaderComponent={
                         <Animated.View style={headerAnimatedStyle}>
-                            <Text style={{ fontSize: 20 }}>{haveRecordData ? t('lastestInYourArea') : "Let search to find nearby pet"}</Text>
+                            <Text style={{ fontSize: 20 }}>{haveRecordData ? t('lastestInYourArea') : "No data"}</Text>
                         </Animated.View>
                     }
                     renderItem={({ item }) => (
                         <BottomSheetItem
                             item={item}
                             toggleLike={() => debouncedToggleLike(item.id)}
+                            toggleReport={() => toggleReport(item.id)}
                             isLastItem={markers.indexOf(item) === markers.length - 1}
                         />
 

@@ -83,6 +83,8 @@ const LoginScreen = () => {
      */
     const validateInputsLogin = () => {
         const emailValid = email.trim() !== '' && email.length >= 3;
+        const emailMessage = validateEmail(email, t);
+        setEmailErrorText(emailMessage || '');
         setEmailError(!emailValid);
 
         const passwordValid = password.trim() !== '' && password.length >= 8;
@@ -91,17 +93,22 @@ const LoginScreen = () => {
         return emailValid && passwordValid;
     }
     const validateEmailInput = () => {
-        const emailValid = validateEmail(email, t);
-        setEmailError(!!emailValid);
-        setEmailErrorText(emailValid || '');
-        return emailValid;
+        if (email.length > 0) {
+            const emailValid = validateEmail(email, t);
+            setEmailError(!!emailValid);
+            setEmailErrorText(emailValid || '');
+            return emailValid;
+        }
 
     };
 
     const validatePassword = () => {
-        const passwordValid = password.trim() !== '' && password.length >= 8;
-        setPasswordError(!passwordValid);
-        return passwordValid;
+        if (password.length > 0) {
+            const passwordValid = password.trim() !== '' && password.length >= 8;
+            setPasswordError(!passwordValid);
+            return passwordValid;
+        }
+
     };
     const mapRecordModelToUserData = (record: any): UserData => {
         return {
@@ -157,7 +164,7 @@ const LoginScreen = () => {
                     setShowDialog(true);
                     setMessage(t('noAccountFound'));
                     break;
-                
+
             }
         }
         setIsLoading(false);
@@ -233,8 +240,8 @@ const LoginScreen = () => {
                             mode='outlined'
                             style={styles.input}
                             label={t('email')}
-                            left={<TextInput.Icon icon="account" color="#b5e1eb" />}
-                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="account" color="#b5e1eb" />}
+                            right={email.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
                             value={email}
                             onChangeText={setEmail}
                             outlineColor='#ccc'
@@ -248,8 +255,8 @@ const LoginScreen = () => {
                             mode='outlined'
                             style={{ ...styles.input }}
                             label={t('password')}
-                            left={<TextInput.Icon icon="key" color="#b5e1eb" />}
-                            right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={togglePasswordVisibility} color="#b5e1eb" />}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="key" color="#b5e1eb" />}
+                            right={password.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} color={'#b5e1eb'} icon={showPassword ? "eye-off" : "eye"} onPress={() => togglePasswordVisibility()} />}
                             secureTextEntry={!showPassword}
                             value={password}
                             onChangeText={setPassword}

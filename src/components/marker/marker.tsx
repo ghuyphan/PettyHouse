@@ -64,7 +64,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = memo(({ marker, index, bottomS
                         </View>
                         <View style={styles.likesRow}>
                             <Text style={styles.likes}>{marker.like}</Text>
-                            <Icon source="thumb-up" size={13} color={'#8ac5db'} />
+                            <Icon source="heart" size={13} color={'#FF5733'} />
                         </View>
                     </View>
                     <Text style={styles.title}>{marker.title}</Text>
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         gap: 5
     },
     likes: {
-        color: '#8ac5db',
+        color: '#FF5733',
         fontSize: 12,
     },
     title: {

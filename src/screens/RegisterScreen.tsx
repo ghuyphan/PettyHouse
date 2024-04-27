@@ -129,16 +129,18 @@ const RegisterScreen = () => {
                             mode='outlined'
                             style={styles.input}
                             label={t('email')}
-                            left={<TextInput.Icon icon="email" color="#b5e1eb" />}
-                            right={<TextInput.Icon icon="close-circle" color="#b5e1eb" size={20} onPress={() => setEmail('')} />}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="email" color="#b5e1eb" />}
+                            right={email.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="close" color="#b5e1eb" onPress={() => setEmail('')} />}
                             value={email}
                             onChangeText={setEmail}
                             outlineColor='#ccc'
                             maxLength={40}
                             onBlur={() => {
-                                const error = validateEmail(email, t);
-                                setEmailError(!!error);
-                                setEmailErrorText(error || '');
+                                if (email.length > 0) {
+                                    let error = validateEmail(email, t);
+                                    setEmailError(!!error);
+                                    setEmailErrorText(error || '');
+                                }
                             }}
                             error={emailError}
 
@@ -148,17 +150,19 @@ const RegisterScreen = () => {
                             mode='outlined'
                             style={{ ...styles.input }}
                             label={t('password')}
-                            left={<TextInput.Icon icon="key" color="#b5e1eb" />}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="key" color="#b5e1eb" />}
                             secureTextEntry={!passwordVisibility.password}
-                            right={<TextInput.Icon icon={passwordVisibility.password ? "eye-off" : "eye"} onPress={() => togglePasswordVisibility('password')} color="#b5e1eb" />}
+                            right={password.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon={passwordVisibility.password ? "eye-off" : "eye"} onPress={() => togglePasswordVisibility('password')} color="#b5e1eb" />}
                             value={password}
                             onChangeText={setPassword}
                             outlineColor='#ccc'
                             maxLength={30}
                             onBlur={() => {
-                                const error = validatePassword(password, t);
-                                setPasswordError(!!error);
-                                setPasswordErrorText(error || '');
+                                if (password.length > 0) {
+                                    let error = validatePassword(password, t);
+                                    setPasswordError(!!error);
+                                    setPasswordErrorText(error || '');
+                                }
                             }}
                             error={passwordError}
                         />
@@ -167,17 +171,19 @@ const RegisterScreen = () => {
                             mode='outlined'
                             style={{ ...styles.input }}
                             label={t('confirmPassword')}
-                            left={<TextInput.Icon icon="key" color="#b5e1eb" />}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="key" color="#b5e1eb" />}
                             secureTextEntry={!passwordVisibility.confirmPassword}
-                            right={<TextInput.Icon icon={passwordVisibility.confirmPassword ? "eye-off" : "eye"} onPress={() => togglePasswordVisibility('confirmPassword')} color="#b5e1eb" />}
+                            right={confirmPassword.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon={passwordVisibility.confirmPassword ? "eye-off" : "eye"} onPress={() => togglePasswordVisibility('confirmPassword')} color="#b5e1eb" />}
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                             outlineColor='#ccc'
                             maxLength={30}
                             onBlur={() => {
-                                const error = validateConfirmPassword(confirmPassword, password, t);
-                                setConfirmPasswordError(!!error);
-                                setConfirmPasswordErrorText(error || '');
+                                if (confirmPassword.length > 0) {
+                                    let error = validateConfirmPassword(confirmPassword, password, t);
+                                    setConfirmPasswordError(!!error);
+                                    setConfirmPasswordErrorText(error || '');
+                                }   
                             }}
                             error={confirmPasswordError}
                         />
@@ -188,7 +194,7 @@ const RegisterScreen = () => {
                         onPress={handleRegister}
                         style={{ marginTop: 20, marginBottom: 50 }}
                         labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                        
+
                         disabled={isLoading}
                         loading={isLoading}
                     >

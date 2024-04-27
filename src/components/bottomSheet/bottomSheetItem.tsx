@@ -1,85 +1,112 @@
-import React from 'react';
+import React, { FC, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Avatar, Button } from 'react-native-paper';
-import moment from 'moment'; 
+import { Avatar, Button, Menu, IconButton } from 'react-native-paper';
+import moment from 'moment';
 import { useTranslation } from 'react-i18next';
 
 interface BottomSheetItemProps {
-    item: any;
+    item: {
+        created: string;
+        avatar?: string;
+        username: string;
+        address: string;
+        title: string;
+        image: string;
+        hasLiked: boolean;
+        like: number;
+    };
     toggleLike: () => void;
+    toggleReport: () => void;
     isLastItem: boolean;
 }
-const BottomSheetItem: React.FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem }) => {
+
+const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem, toggleReport }) => {
     const { t } = useTranslation();
-    const createdDate = moment(item.created); // Assuming item.created has time zone info
-    const currentDate = moment();
+    const createdDate = useMemo(() => moment(item.created), [item.created]);
+    const currentDate = useMemo(() => moment(), []);
 
+    const [menuVisible, setMenuVisible] = useState(false);
+    const openMenu = () => setMenuVisible(true);
+    const closeMenu = () => setMenuVisible(false);
 
-    const timeDiffHours = currentDate.diff(createdDate, 'hours'); 
-    let timeAgoText;
-    if (timeDiffHours < 1) {
-        timeAgoText = t('lessThanOneHourAgo');
-    } else if (timeDiffHours < 24) {
-        timeAgoText = `${timeDiffHours} ` + t('hoursAgo'); 
-    } else {
-        const daysDiff = currentDate.diff(createdDate, 'days'); 
-        if (daysDiff < 7) { 
-            timeAgoText = `${daysDiff} ` + t('daysAgo'); 
-        } else if (daysDiff < 31) { // Check for weeks
-            const weeksDiff = Math.floor(daysDiff / 7);
-            timeAgoText = `${weeksDiff} ${weeksDiff > 1 ?  t('weeksAgo') : t('weekAgo')}`;
-        } else { // Check for months
-            const monthsDiff = currentDate.diff(createdDate, 'months');
-            timeAgoText = `${monthsDiff} ${monthsDiff > 1 ? 'months' : 'month'} ago`;
+    const timeAgoText = useMemo(() => {
+        const timeDiffHours = currentDate.diff(createdDate, 'hours');
+        if (timeDiffHours < 1) {
+            return t('lessThanOneHourAgo');
+        } else if (timeDiffHours < 24) {
+            return `${timeDiffHours} ${t('hoursAgo')}`;
+        } else {
+            const daysDiff = currentDate.diff(createdDate, 'days');
+            if (daysDiff < 7) {
+                return `${daysDiff} ${t('daysAgo')}`;
+            } else if (daysDiff < 31) {
+                const weeksDiff = Math.floor(daysDiff / 7);
+                return `${weeksDiff} ${weeksDiff > 1 ? t('weeksAgo') : t('weekAgo')}`;
+            } else {
+                const monthsDiff = currentDate.diff(createdDate, 'months');
+                return `${monthsDiff} ${monthsDiff > 1 ? 'months' : 'month'} ago`;
+            }
         }
-    }
+    }, [createdDate, currentDate, t]);
 
     return (
         <View style={styles.card}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                {item.avatar ?
-                    <Avatar.Image source={{ uri: item.avatar }} size={35} style={styles.avatar} /> :
-                    <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color='#fff' />
-                }
-                <View style={{ flexDirection: 'column', gap: 5 }}>
-                    <Text style={styles.userName}>@{item.username}</Text>
-                    <Text style={{ color: '#888', fontSize: 12, width: '100%' }} numberOfLines={1}>{item.address}</Text>
+            <View style={styles.topContainer}>
+                <View style={styles.userSection}>
+                    {item.avatar ? (
+                        <Avatar.Image source={{ uri: item.avatar }} size={35} style={styles.avatar} />
+                    ) : (
+                        <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color="#fff" />
+                    )}
+                    <View style={styles.userInfo}>
+                        <Text style={styles.userName}>@{item.username}</Text>
+                        <Text style={styles.address}>{item.address}</Text>
+                    </View>
+
                 </View>
+                <Menu
+                    visible={menuVisible}
+                    onDismiss={closeMenu}
+                    contentStyle={{ backgroundColor: '#ffff' }}
+                    anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={20} iconColor='#8ac5db' style={styles.moreButton} />}
+                >
+                    <Menu.Item onPress={() => { }} title={t('edit')} />
+                    <Menu.Item onPress={() => { }} title={t('delete')} />
+                    <Menu.Item titleStyle={{ color: 'red' }} onPress={toggleReport} title={t('report')} />
+                </Menu>
             </View>
-            <Text style={{ fontSize: 14, color: '#555', width: '100%', marginBottom: 10 }}>
+            <Text style={styles.title}>
                 {item.title}
             </Text>
-            <Image source={{ uri: item.image }} style={{ width: '100%', height: 300, borderRadius: 15 }} contentFit='cover' />
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 20 }}>
-            <Text style={{ color: '#8ac5db', fontSize: 15 }}>{timeAgoText}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <Button
-                        mode='text'
-                        onPress={() => toggleLike()}
-                        icon={item.hasLiked ? 'thumb-up' : 'thumb-up-outline'}
-                        labelStyle={{ fontSize: 20, color: '#8ac5db' }}
+            <Image source={{ uri: item.image }} style={styles.image} />
+            <View style={styles.actionSection}>
+                <View style={styles.likeDislikeButtons}>
+                    <IconButton
+                        style={styles.moreButton}
+                        size={22}
+                        iconColor={item.hasLiked ? '#FF5733' : '#8ac5db'}
+                        onPress={toggleLike}
+                        icon={item.hasLiked ? 'heart' : 'heart-outline'}
                     >
-                        <Text style={{ color: '#8ac5db', fontSize: 15, width: '100%' }}>{item.like}</Text>
-                    </Button>
-                    <Button
-                        mode='text'
-                        onPress={() => toggleLike()}
-                        icon={'thumb-down-outline'}
-                        labelStyle={{ fontSize: 20, color: '#8ac5db' }}
+                    </IconButton>
+                    <IconButton
+                        style={styles.moreButton}
+                        size={22}
+                        iconColor={'#8ac5db'}
+                        onPress={toggleLike}
+                        icon={'comment-outline'}
                     >
-                        <Text style={{ color: '#8ac5db', fontSize: 15 }}>{item.dislike}</Text>
-                    </Button>
+                    </IconButton>
                 </View>
+                <Text style={styles.timeAgo}>{timeAgoText}</Text>
             </View>
-            {!isLastItem && (
-                <View style={{ backgroundColor: '#f0f9fc', height: 5, width: '100%', marginBottom: 20, borderRadius: 5 }} />
-            )}
+            {item.like > 0 && <Text style={styles.like}>{item.like} lượt thich</Text>}
+            {!isLastItem && <View style={styles.divider} />}
         </View>
     );
+};
 
-}
 const styles = StyleSheet.create({
     card: {
         backgroundColor: '#fff',
@@ -87,12 +114,79 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         flexDirection: 'column'
     },
-    avatar: {
+    topContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
     },
+    avatar: {},
     userName: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#8ac5db',
+    },
+    userSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    userInfo: {
+        flexDirection: 'column',
+        gap: 5
+    },
+    address: {
+        color: '#888',
+        fontSize: 12,
+        width: '100%'
+    },
+    title: {
+        fontSize: 14,
+        color: '#555',
+        width: '100%',
+        marginBottom: 10
+    },
+    image: {
+        width: '100%',
+        height: 300,
+        borderRadius: 15,
+        // aspectRatio: 1
+    },
+    actionSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        // marginBottom: 10,
+    },
+    timeAgo: {
+        color: '#8ac5db',
+        fontSize: 14
+    },
+    likeDislikeButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+    },
+    iconLabel: {
+        fontSize: 20,
+        color: '#8ac5db'
+    },
+    divider: {
+        backgroundColor: '#f0f9fc',
+        height: 5,
+        width: '100%',
+        marginBottom: 20,
+        borderRadius: 5
+    },
+    moreButton: {
+        color: '#8ac5db',
+        backgroundColor: 'transparent'
+    },
+    like: {
+        color: '#8ac5db',
+        fontSize: 14,
+        marginBottom: 20,
     },
 });
 

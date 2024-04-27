@@ -106,9 +106,9 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
                 />
             </Animated.View>
             <Animated.View style={additionalContentStyle}>
-                <IconButton icon="chevron-down" size={20} iconColor='#8ac5db' style={{ backgroundColor: 'transparent'}} onPress={() => { bottomSheetRef.current?.snapToIndex(0) }} />
+                <IconButton icon="chevron-down" size={25} iconColor='#8ac5db' style={{ backgroundColor: 'transparent'}} onPress={() => { bottomSheetRef.current?.snapToIndex(0) }} />
                 <Text style={{ textAlign: 'center', fontSize: 18 }}>{t('lastestInYourArea')}</Text>
-                <IconButton icon="magnify" size={20} iconColor='#8ac5db' style={{ backgroundColor: 'transparent' }} onPress={() => { }} />
+                <IconButton icon="magnify" size={25} iconColor='#8ac5db' style={{ backgroundColor: 'transparent' }} onPress={() => { }} />
             </Animated.View>
         </Animated.View>
     );

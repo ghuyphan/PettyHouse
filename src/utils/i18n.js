@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { version } from 'react';
 
 i18n.use(initReactI18next).init({
   compatibilityJSON: 'v3', 
@@ -70,6 +71,12 @@ i18n.use(initReactI18next).init({
         cancelButton: 'Cancel',
         changeButton: 'Change',
         radiusSliderTitle: 'Change search radius',
+        edit: 'Edit',
+        delete: 'Delete',
+        report: 'Report',
+        logout: 'Logout',
+        languageSwitch:'Change language',
+        version: 'Version 1.0.0 build 042024'
       },
     },
     vi: {
@@ -127,7 +134,7 @@ i18n.use(initReactI18next).init({
         fetchingData: 'Đang tìm kiếm...',
         explore: 'Khám phá',
         goToPost: 'Đến bài viết',
-        lastestInYourArea: 'Mới nhất trong khu vực bạn',
+        lastestInYourArea: 'Tin mới nhất trong khu vực',
         lesThanAnHourAgo: 'Ít hơn 1 giờ trước',
         hoursAgo: 'giờ trước',
         daysAgo: 'ngày trước',
@@ -136,6 +143,12 @@ i18n.use(initReactI18next).init({
         cancelButton: 'Huỷ',
         changeButton: 'Thay đổi',
         radiusSliderTitle: 'Thay đổi phạm vi tìm kiếm',
+        edit: 'Sửa đổi',
+        delete: 'Xóa',
+        report: 'Bảo cáo',
+        logout: 'Đăng xuất',
+        languageSwitch:'Thay đổi ngôn ngữ',
+        version: 'Phiên bản 1.0.0 build 042024',
       },
     },
     // Add more languages as needed
