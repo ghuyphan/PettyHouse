@@ -103,6 +103,7 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
                     inputStyle={{ fontSize: 16 }}
                     style={{ position: 'absolute', top: searchbarTop, left: 20, right: 20 }}
                     selectionColor={'#000'}
+                    elevation={3}
                 />
             </Animated.View>
             <Animated.View style={additionalContentStyle}>

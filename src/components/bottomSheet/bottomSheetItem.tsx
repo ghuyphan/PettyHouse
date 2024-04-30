@@ -1,9 +1,10 @@
 import React, { FC, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Avatar, Button, Menu, IconButton } from 'react-native-paper';
+import { Avatar, Button, Menu, IconButton, Snackbar } from 'react-native-paper';
 import moment from 'moment';
 import { useTranslation } from 'react-i18next';
+import TextDialogCheckBox from '../modal/textDialogCheckBox';
 
 interface BottomSheetItemProps {
     item: {
@@ -17,7 +18,7 @@ interface BottomSheetItemProps {
         like: number;
     };
     toggleLike: () => void;
-    toggleReport: () => void;
+    toggleReport: (reason: string) => void;
     isLastItem: boolean;
 }
 
@@ -29,6 +30,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
     const [menuVisible, setMenuVisible] = useState(false);
     const openMenu = () => setMenuVisible(true);
     const closeMenu = () => setMenuVisible(false);
+    const [isVisible, setIsVisible] = useState(false);
 
     const timeAgoText = useMemo(() => {
         const timeDiffHours = currentDate.diff(createdDate, 'hours');
@@ -49,6 +51,11 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
             }
         }
     }, [createdDate, currentDate, t]);
+
+    const handleReport = (reason: string) => {
+        toggleReport(reason);
+        setIsVisible(false);
+    }
 
     return (
         <View style={styles.card}>
@@ -73,7 +80,12 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                 >
                     <Menu.Item onPress={() => { }} title={t('edit')} />
                     <Menu.Item onPress={() => { }} title={t('delete')} />
-                    <Menu.Item titleStyle={{ color: 'red' }} onPress={toggleReport} title={t('report')} />
+                    <Menu.Item titleStyle={{ color: 'red' }} onPress={() => (
+                        <>
+                            {setIsVisible(true)}
+                            {closeMenu()}
+                        </>
+                    )} title={t('report')} />
                 </Menu>
             </View>
             <Text style={styles.title}>
@@ -103,6 +115,14 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
             </View>
             {item.like > 0 && <Text style={styles.like}>{item.like} lượt thich</Text>}
             {!isLastItem && <View style={styles.divider} />}
+            <TextDialogCheckBox
+                dismissable={true}
+                isVisible={isVisible}
+                onDismiss={() => setIsVisible(false)}
+                onConfirm={(reason) => handleReport(reason)}
+                title={'What is wrong with this post?'}
+            />
+
         </View>
     );
 };

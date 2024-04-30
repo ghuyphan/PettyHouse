@@ -62,7 +62,9 @@ i18n.use(initReactI18next).init({
         fetchingData: 'Finding nearby pets...',
         explore: 'Explore',
         goToPost: 'Go to post',
-        lastestInYourArea: 'Lastest in nearby your area',
+        lastestInYourArea: 'Lastest posts in your area',
+        noRecords: 'to see latest posts',
+        tapBottomSheetHeader: 'Tap',
         lesThanAnHourAgo: 'Less than an hour ago',
         hoursAgo: 'hours ago',
         daysAgo: 'days ago',
@@ -75,8 +77,9 @@ i18n.use(initReactI18next).init({
         delete: 'Delete',
         report: 'Report',
         logout: 'Logout',
+        settings: 'Settings',
         languageSwitch:'Change language',
-        version: 'Version 1.0.0 build 042024'
+        version: 'Version 1.0.0 build 0424'
       },
     },
     vi: {
@@ -135,6 +138,8 @@ i18n.use(initReactI18next).init({
         explore: 'Khám phá',
         goToPost: 'Đến bài viết',
         lastestInYourArea: 'Tin mới nhất trong khu vực',
+        noRecords: 'để tìm kiếm tin mới nhất',
+        tapBottomSheetHeader: 'Nhấn',
         lesThanAnHourAgo: 'Ít hơn 1 giờ trước',
         hoursAgo: 'giờ trước',
         daysAgo: 'ngày trước',
@@ -147,8 +152,9 @@ i18n.use(initReactI18next).init({
         delete: 'Xóa',
         report: 'Bảo cáo',
         logout: 'Đăng xuất',
+        settings: 'Cài đặt',
         languageSwitch:'Thay đổi ngôn ngữ',
-        version: 'Phiên bản 1.0.0 build 042024',
+        version: 'Phiên bản 1.0.0 build 0424',
       },
     },
     // Add more languages as needed

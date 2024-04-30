@@ -23,6 +23,7 @@ interface UserData {
     emailVisibility: boolean;
     verified: boolean;
     name: string;
+    avatar: string;
 }
 
 const LoginScreen = () => {
@@ -118,6 +119,7 @@ const LoginScreen = () => {
             emailVisibility: record.emailVisibility || false,
             verified: record.verified || false,
             name: record.name || '',
+            avatar: record.avatar || ''
         };
     };
 
@@ -278,6 +280,7 @@ const LoginScreen = () => {
                         </Button>
                     </View>
                     <Button
+                        icon={"login"}
                         mode="contained"
                         onPress={handleLogin}
                         labelStyle={{ fontSize: 16, fontWeight: 'bold' }}

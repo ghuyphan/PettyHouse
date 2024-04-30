@@ -140,6 +140,7 @@ const RequestPasswordScreen = () => {
                         <HelperText type="error" visible={emailError} style={{ marginTop: -5 }}>{emailErrorText}</HelperText>
                     </View>
                     <Button
+                        icon="email-fast"
                         mode="contained"
                         onPress={handleRequestPass}
                         style={{ marginTop: 20 }}

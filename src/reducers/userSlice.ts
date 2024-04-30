@@ -7,6 +7,7 @@ interface UserData {
     emailVisibility: boolean;
     verified: boolean;
     name: string; 
+    avatar: string;
 }
 
 interface AuthState {

@@ -62,6 +62,7 @@ const SliderDialog: React.FC<SliderDialogProps> = ({
 const styles = StyleSheet.create({
     title: {
         // textAlign: 'center',
+        fontSize: 20
     }
 });
 

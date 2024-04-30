@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, BackHandler, Platform, useWindowDimensions } from 'react-native';
-import { FAB, Text, ActivityIndicator, Button } from 'react-native-paper';
+import { FAB, Text, ActivityIndicator, Button, Snackbar, Icon } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -26,6 +26,7 @@ import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
 import BottomSheetItem from '../components/bottomSheet/bottomSheetItem';
 import PopupDialog from '../components/modal/popupDialog';
+import TextDialog2Btn from '../components/modal/textDialog2Btn';
 
 //API import
 import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
@@ -52,7 +53,7 @@ const HomeScreen = () => {
     const [markers, setMarkers] = useState<TypeMarker[]>([]);
     const [isLoadingRegion, setIsLoadingRegion] = useState(false);
     const [radius, setRadius] = useState(2);
-    
+
 
     const [zoomLevel, setZoomLevel] = useState(0);
     //Timer to prevent multiple button spam
@@ -69,6 +70,9 @@ const HomeScreen = () => {
     const maxOffsetRatio = windowHeight < 700 ? 0.65 : 0.7;
     const maxOffset = windowHeight * maxOffsetRatio;
     const [bottomSheetSnapPoint, setBottomSheetSnapPoint] = useState(0);
+    const [reason, setReason] = useState('');
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+    const [snackbarText, setSnackbarText] = useState('');
 
     const animatedFABStyle = useAnimatedStyle(() => {
         const availableSpace = windowHeight - bottomSheetPosition.value;
@@ -125,7 +129,7 @@ const HomeScreen = () => {
             }
         }
     }, [haveRecordData, flatListRef]); // Make sure flatListRef is stable
-    
+
 
     //Animation
     const openPopupDialog = useCallback(() => {
@@ -308,12 +312,12 @@ const HomeScreen = () => {
         }
     }, [isLoadingData, t, userData?.id]); // Ensure all necessary dependencies are included
 
-    const updateRadius  = async (value: number) => {
+    const updateRadius = async (value: number) => {
         setRadius(value);
         SecureStore.setItemAsync('radius', value.toString());
         setSliderVisible(false);
     };
-    
+
     const toggleLike = async (postId: string) => {
         const token = await SecureStore.getItemAsync('authToken');
 
@@ -357,40 +361,37 @@ const HomeScreen = () => {
 
     const debouncedToggleLike = useRef(debounce(toggleLike, 800)).current;
 
-    const toggleReport = async (postId: string) => {
+    const toggleReport = async (postId: string, reason: string) => {
         const token = await SecureStore.getItemAsync('authToken');
 
         try {
-            // Track if a toggle request is already in progress
             let isRequestInProgress = false;
-            // Modify the toggle behavior
-            const toggle = async () => {
-                if (isRequestInProgress) return;
+            if (isRequestInProgress) return;
 
-                isRequestInProgress = true;
-                const response = await pb.send(`/api/posts/${postId}/report`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                isRequestInProgress = false;
-                console.log(response);
-            };
-
-            // Now directly call the toggle function
-            toggle();
-
+            isRequestInProgress = true;
+            const response = await pb.send(`/api/posts/${postId}/report`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
+            });
+            isRequestInProgress = false;
+            setSnackbarText('Post reported successfully');
+            setSnackbarVisible(true);
         } catch (error) {
-            // Handle error
+            if (error instanceof Error) {
+                setSnackbarText(error.message);
+            }
+            setSnackbarVisible(true);
             setpopupMessage('Error');
             openPopupDialog();
             setTimeout(() => {
                 closePopupDialog();
             }, 2000);
-
         }
-    }
+    };
 
     const handleSearchBarLayout = (searchbarBottom: number) => {
         // Define the desired space between the search bar and the bottom sheet
@@ -476,14 +477,14 @@ const HomeScreen = () => {
                 </MapView>
             )}
             <Animated.View style={animatedFABStyle}>
-                <FAB 
+                <FAB
                     size='small'
                     mode='elevated'
-                    style={{ position: 'absolute', bottom: 80, left: 20, borderRadius: 50}}
+                    style={{ position: 'absolute', bottom: 80, left: 20, borderRadius: 50 }}
                     onPress={() => setSliderVisible(true)}
                     icon={'radar'}
                     color={'#8ac5db'}
-                > 
+                >
                 </FAB>
                 <FAB
                     style={{ position: 'absolute', bottom: 160, right: 20, borderRadius: 50 }}
@@ -549,20 +550,46 @@ const HomeScreen = () => {
                     stickyHeaderHiddenOnScroll={true}
                     ListHeaderComponent={
                         <Animated.View style={headerAnimatedStyle}>
-                            <Text style={{ fontSize: 20 }}>{haveRecordData ? t('lastestInYourArea') : "No data"}</Text>
+                            {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                    <Text style={{ fontSize: 20 }}>{t('tapBottomSheetHeader')}</Text>
+                                    <View style={{ padding: 5, borderRadius: 10, backgroundColor: '#8ac5db' }} >
+                                        <Icon source="paw" color={'#fff'} size={15} />
+                                    </View>
+
+                                    <Text style={{ fontSize: 20 }}>{t('noRecords')}</Text>
+                                </View>
+                            }
+
                         </Animated.View>
                     }
                     renderItem={({ item }) => (
                         <BottomSheetItem
                             item={item}
                             toggleLike={() => debouncedToggleLike(item.id)}
-                            toggleReport={() => toggleReport(item.id)}
+                            toggleReport={(reason: string) => toggleReport(item.id, reason)}
                             isLastItem={markers.indexOf(item) === markers.length - 1}
                         />
+
 
                     )}
                 />
             </BottomSheet>
+            <Snackbar
+                wrapperStyle={{ bottom: -35 }}
+                visible={snackbarVisible}
+                onDismiss={() => setSnackbarVisible(false)}
+                action={{
+                    label: t('close'),
+                    labelStyle: { color: '#b5e1eb' },
+                    onPress: () => {
+                        setSnackbarVisible(false);
+                    },
+                    rippleColor: '#b5e1eb',
+                }}
+            >
+                {snackbarText}
+            </Snackbar>
             <SearchbarComponent
                 onSearchUpdate={setSearchQuery}
                 onSearchBarLayout={handleSearchBarLayout}
@@ -570,6 +597,7 @@ const HomeScreen = () => {
                 lastSnapPoint={bottomSheetSnapPoint}
                 bottomSheetRef={bottomSheetRef}
             />
+
         </View>
     );
 };

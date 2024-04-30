@@ -4,6 +4,7 @@ import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import RequestPasswordScreen from "../screens/RequestPasswordScreen";
 import BottomNav from "./bottomNav/bottomNav";
+import EditProfileScreen from "../screens/SettingSubScreens/EditProfile";
 
 const Stack = createStackNavigator();
 
@@ -16,6 +17,7 @@ function AppNavigator({ initialRouteName }: { initialRouteName: string }) {
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="RequestPassword" component={RequestPasswordScreen} />
             <Stack.Screen name="BottomNav" component={BottomNav} options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         </Stack.Navigator>
     );
 }

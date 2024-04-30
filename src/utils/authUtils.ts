@@ -15,6 +15,7 @@ interface UserData {
   emailVisibility: boolean;
   verified: boolean;
   name: string;
+  avatar: string;
 }
 
 // Initial Authorization Check on App Start
@@ -59,6 +60,7 @@ const mapRecordModelToUserData = (record: any): UserData => {
         emailVisibility: record.emailVisibility || false,
         verified: record.verified || false,
         name: record.name || '',
+        avatar: record.avatar || ''
     };
 };
 

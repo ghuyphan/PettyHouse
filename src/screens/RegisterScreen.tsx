@@ -190,6 +190,7 @@ const RegisterScreen = () => {
                         <HelperText type="error" visible={confirmPasswordError} style={{ marginTop: -5 }}>{confirmPasswordErrorText}</HelperText>
                     </View>
                     <Button
+                        icon={"account-plus"}
                         mode="contained"
                         onPress={handleRegister}
                         style={{ marginTop: 20, marginBottom: 50 }}
