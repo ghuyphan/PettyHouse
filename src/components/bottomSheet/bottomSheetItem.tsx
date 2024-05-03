@@ -18,11 +18,12 @@ interface BottomSheetItemProps {
         like: number;
     };
     toggleLike: () => void;
+    showDetail: () => void;
     toggleReport: (reason: string) => void;
     isLastItem: boolean;
 }
 
-const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem, toggleReport }) => {
+const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem, toggleReport, showDetail }) => {
     const { t } = useTranslation();
     const createdDate = useMemo(() => moment(item.created), [item.created]);
     const currentDate = useMemo(() => moment(), []);
@@ -78,9 +79,9 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                     contentStyle={{ backgroundColor: '#ffff' }}
                     anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={20} iconColor='#8ac5db' style={styles.moreButton} />}
                 >
-                    <Menu.Item onPress={() => { }} title={t('edit')} />
-                    <Menu.Item onPress={() => { }} title={t('delete')} />
-                    <Menu.Item titleStyle={{ color: 'red' }} onPress={() => (
+                    {/* <Menu.Item leadingIcon={'pencil-outline'} onPress={() => { }} title={t('edit')} /> */}
+                    <Menu.Item leadingIcon={'share'} onPress={() => { }} title={t('share')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => (
                         <>
                             {setIsVisible(true)}
                             {closeMenu()}
@@ -92,6 +93,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                 {item.title}
             </Text>
             <Image source={{ uri: item.image }} style={styles.image} />
+            {item.like > 0 && <Text style={styles.like}>{item.like} {t('likes')}</Text>}
             <View style={styles.actionSection}>
                 <View style={styles.likeDislikeButtons}>
                     <IconButton
@@ -106,21 +108,22 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                         style={styles.moreButton}
                         size={22}
                         iconColor={'#8ac5db'}
-                        onPress={toggleLike}
+                        onPress={() => showDetail()}
                         icon={'comment-outline'}
                     >
                     </IconButton>
                 </View>
                 <Text style={styles.timeAgo}>{timeAgoText}</Text>
             </View>
-            {item.like > 0 && <Text style={styles.like}>{item.like} lượt thich</Text>}
             {!isLastItem && <View style={styles.divider} />}
             <TextDialogCheckBox
+                confirmLabel={t('report')}
+                dismissLabel={t('cancelButton')}
                 dismissable={true}
                 isVisible={isVisible}
                 onDismiss={() => setIsVisible(false)}
                 onConfirm={(reason) => handleReport(reason)}
-                title={'What is wrong with this post?'}
+                title={t('reportTitle')}
             />
 
         </View>
@@ -138,7 +141,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 10,
+        marginBottom: 15,
     },
     avatar: {},
     userName: {
@@ -176,8 +179,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 10,
-        // marginBottom: 10,
+        // marginTop: 10,
+        marginBottom: 10,
     },
     timeAgo: {
         color: '#8ac5db',
@@ -206,7 +209,10 @@ const styles = StyleSheet.create({
     like: {
         color: '#8ac5db',
         fontSize: 14,
-        marginBottom: 20,
+        alignItems: 'center',
+        // marginBottom: 20,
+        marginTop: 15,
+        marginLeft: 10
     },
 });
 

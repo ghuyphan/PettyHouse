@@ -10,7 +10,9 @@ interface SearchbarComponentProps {
     onSearchBarLayout?: (bottom: number) => void;
     bottomSheetPosition: SharedValue<number>;
     lastSnapPoint: number;
-    bottomSheetRef: any
+    bottomSheetRef: any;
+    activeView: string;
+    showList: () => void;
 }
 
 const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
@@ -19,6 +21,8 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
     bottomSheetPosition,
     lastSnapPoint,
     bottomSheetRef,
+    activeView,
+    showList,
 }) => {
     const windowHeight = Dimensions.get('window').height;
     const searchbarTop = windowHeight * 0.055;
@@ -74,6 +78,7 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
             onSearchUpdate(query);
         }
     };
+    
 
     return (
         <Animated.View
@@ -106,11 +111,12 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
                     elevation={3}
                 />
             </Animated.View>
-            <Animated.View style={additionalContentStyle}>
-                <IconButton icon="chevron-down" size={25} iconColor='#8ac5db' style={{ backgroundColor: 'transparent'}} onPress={() => { bottomSheetRef.current?.snapToIndex(0) }} />
-                <Text style={{ textAlign: 'center', fontSize: 18 }}>{t('lastestInYourArea')}</Text>
-                <IconButton icon="magnify" size={25} iconColor='#8ac5db' style={{ backgroundColor: 'transparent' }} onPress={() => { }} />
-            </Animated.View>
+                <Animated.View style={additionalContentStyle}>
+                    <IconButton animated={true} icon={activeView === 'list' ? 'chevron-down' : 'arrow-left'} size={25} iconColor='#8ac5db' style={{ backgroundColor: 'transparent' }} 
+                    onPress={() => { activeView === 'list' ? bottomSheetRef.current?.snapToIndex(0) : showList()}} />
+                    {activeView === 'list' ? <Text style={{ textAlign: 'center', fontSize: 18 }}>{t('lastestInYourArea')}</Text> : <Text style={{ textAlign: 'center', fontSize: 18 }}>{t('comment')}</Text>}
+                    <IconButton icon="magnify" size={25} iconColor='#8ac5db' style={{ backgroundColor: 'transparent' }} onPress={() => { }} />
+                </Animated.View>
         </Animated.View>
     );
 };

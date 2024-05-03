@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Dialog, Portal, Text, RadioButton, TextInput } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 
 interface TextDialogRadioButtonProps {
     isVisible: boolean;
@@ -23,6 +24,7 @@ const TextDialogRadioButton: React.FC<TextDialogRadioButtonProps> = ({
 }) => {
     const [checkedValue, setCheckedValue] = React.useState<string>('');
     const [otherText, setOtherText] = React.useState<string>('');
+    const [ t ] = useTranslation();
 
     return (
         <Portal>
@@ -30,16 +32,15 @@ const TextDialogRadioButton: React.FC<TextDialogRadioButtonProps> = ({
                 <Dialog.Title style={styles.title}>{title}</Dialog.Title>
                 <Dialog.Content>
                     <RadioButton.Group onValueChange={value => setCheckedValue(value)} value={checkedValue}>
-                        <RadioButtonItem label="Offensive, hateful or sexually explicit" value="offensive" />
-                        <RadioButtonItem label="Copyright or legal issues" value="copyright" />
-                        <RadioButtonItem label="Privacy concern" value="privacy" />
-                        <RadioButtonItem label="Scam or fraudulent" value="scam" />
-                        <RadioButtonItem label="Spam or irrelevant" value="spam" />
-                        <RadioButtonItem label="Other" value="other">
+                        <RadioButtonItem label={t('offensiveReport')} value="offensive" />
+                        <RadioButtonItem label={t('copyrightReport')} value="copyright" />
+                        <RadioButtonItem label={t('privacyReport')} value="privacy" />
+                        <RadioButtonItem label={t('scamReport')} value="scam" />
+                        <RadioButtonItem label={t('spamReport')} value="spam" />
+                        <RadioButtonItem label={t('otherReport')} value="other">
                             {checkedValue === 'other' && (
                                 <TextInput
-                                    mode="outlined"
-                                    placeholder="Please share your reason"
+                                    placeholder={t('reasonReport')}
                                     value={otherText}
                                     onChangeText={setOtherText}
                                     outlineColor='#ccc'
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     },
     input: {
         marginVertical: 10,
-        backgroundColor: '#fff',
+        backgroundColor: '#f0f9fc',
         width: '100%',
     },
 });

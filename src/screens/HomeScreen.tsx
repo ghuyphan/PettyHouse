@@ -11,9 +11,18 @@ import Animated, {
     Easing,
     useAnimatedStyle,
     interpolate,
+    runOnJS,
 } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetFlatList, BottomSheetFlatListMethods } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList, BottomSheetFlatListMethods, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { debounce } from 'lodash';
+import eventsource from "react-native-sse";
+import 'react-native-url-polyfill/auto';
+interface CustomEventSource extends EventSource {
+    new(url: string | URL, eventSourceInitDict?: EventSourceInit): EventSource;
+    readonly CONNECTING: 0;
+    readonly OPEN: 1;
+    readonly CLOSED: 2;
+}
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
@@ -26,16 +35,20 @@ import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
 import BottomSheetItem from '../components/bottomSheet/bottomSheetItem';
 import PopupDialog from '../components/modal/popupDialog';
-import TextDialog2Btn from '../components/modal/textDialog2Btn';
 
 //API import
 import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
+
+//Animation import
+import { useBottomSheetTransitionManager } from '../animation/HomeScreen/BottomSheetTransitionManager';
+import { useHeaderAnimation } from '../animation/HomeScreen/HeaderAnimation';
 
 //Type import
 import TypeMarker from '../types/markers';
 import TypeCirlce from '../types/mapCircle';
 
 const HomeScreen = () => {
+    global.EventSource = eventsource as unknown as CustomEventSource;
     const [region, setRegion] = useState({
         latitude: 37.78825,
         longitude: -122.4324,
@@ -45,6 +58,7 @@ const HomeScreen = () => {
 
     const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState('');
+    const [buttonPressed, setButtonPressed] = useState('');
     const [circleProps, setCircleProps] = useState<TypeCirlce | null>(null);
     const userData = useSelector((state: RootState) => state.user.userData);
     const [isVisible, setIsVisible] = useState(false);
@@ -54,7 +68,6 @@ const HomeScreen = () => {
     const [isLoadingRegion, setIsLoadingRegion] = useState(false);
     const [radius, setRadius] = useState(2);
 
-
     const [zoomLevel, setZoomLevel] = useState(0);
     //Timer to prevent multiple button spam
     const [isLoadingData, setIsLoadingData] = useState(false);
@@ -63,6 +76,11 @@ const HomeScreen = () => {
 
     //Bottom sheet
     const bottomSheetRef = useRef<BottomSheet>(null);
+    const [activeView, setActiveView] = useState<'detail' | 'list'>('list');
+
+    // Use the transition manager
+    const { showDetail, showList, listStyle, detailStyle } = useBottomSheetTransitionManager(setActiveView);
+
     const flatListRef = useRef<BottomSheetFlatListMethods>(null);
     const bottomSheetPosition = useSharedValue<number>(0);
     const { height: windowHeight } = useWindowDimensions();
@@ -165,22 +183,40 @@ const HomeScreen = () => {
     }
 
     const requestLocationPermission = async () => {
-        setIsVisible(false);
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            //If permission not granted, show error pop-up with error message
-            setIsError(true);
-            setpopupMessage(t('locationPermissionMessage'));
-            openPopupDialog();
-            setTimeout(() => {
-                closePopupDialog();
-            }, 2000);
-        } else {
-            handleLocation();
+        setIsVisible(false); // Hide the element first
+
+        try {  // Introduce a try-catch block for potential errors
+            const { status } = await Location.requestForegroundPermissionsAsync();
+
+            if (status !== 'granted') {
+                //If permission not granted, show error pop-up with error message
+                setIsError(true);
+                setpopupMessage(t('locationPermissionMessage'));
+                openPopupDialog();
+                setTimeout(() => {
+                    closePopupDialog();
+                }, 2000);
+            } else {
+                switch (buttonPressed) {
+                    case 'location':
+                        handleLocation();
+                        break;
+                    case 'fetchingPet':
+                        handleFetchingPet(radius);
+                        break;
+                }
+                handleLocation();
+            }
+
+        } catch (error) {
+            console.error("Error requesting location permission:", error);
+            // Handle general errors during the permission request
         }
     }
 
+
     const handleLocation = useCallback(async () => {
+        setButtonPressed('location');
         const currentTime = Date.now();
         const timeSinceLastClick = currentTime - lastClickTime.current;
         const threshold = 500;
@@ -239,10 +275,18 @@ const HomeScreen = () => {
     }, [lastClickTime, zoomLevel]);
 
     const handleFetchingPet = useCallback(async (currentRadius: number) => {
+        setButtonPressed('fetchingPet');
         const currentTime = Date.now();
         const timeSinceLastFetch = currentTime - lastFetchTime.current;
         const threshold = 2000; // 2 seconds minimum between fetches
         bottomSheetRef.current?.snapToIndex(0);
+
+        const { status } = await Location.getForegroundPermissionsAsync();
+
+        if (status !== 'granted') {
+            setIsVisible(true);
+            return;
+        }
 
         if (isLoadingData || timeSinceLastFetch < threshold) {
             return; // Ignore the request if still loading or threshold not met
@@ -399,7 +443,7 @@ const HomeScreen = () => {
         if (windowHeight < 700) {
             Platform.OS === 'ios' ? desiredSpace = 60 : desiredSpace = 20;
         } else {
-            Platform.OS === 'ios' ? desiredSpace = 100 : desiredSpace = 15;
+            Platform.OS === 'ios' ? desiredSpace = 100 : desiredSpace = 10;
         }
 
         // Calculate the snap point for the bottom sheet, including the desired space
@@ -408,11 +452,24 @@ const HomeScreen = () => {
     };
 
     useEffect(() => {
-        SecureStore.getItemAsync('radius').then((value) => {
-            if (value) {
-                setRadius(parseInt(value));
-            }
-        });
+        const subscribeToPosts = () => {
+            pb.collection('posts').subscribe('*', (event) => {
+                // console.log(event.action);  // You can check the action type: 'create', 'update', or 'delete'
+                // console.log(event.record);  // This is the record that was changed
+                updateMarkersState(event.record);
+            }, { /* other options */ });
+        };
+
+        const updateMarkersState = (updatedRecord: any) => {
+            setMarkers((prevMarkers) => {
+                return prevMarkers.map(marker => {
+                    if (marker.id === updatedRecord.id) {
+                        return { ...marker, like: updatedRecord.likeCount };
+                    }
+                    return marker;
+                });
+            });
+        };
         const fetchLastLocation = async () => {
             setIsLoadingRegion(true);
             const lastLocationString = await SecureStore.getItemAsync('lastLocation');
@@ -441,7 +498,12 @@ const HomeScreen = () => {
             return true;
         });
         fetchLastLocation();
-        return () => backHandler.remove();
+        subscribeToPosts();
+        // return () => backHandler.remove();
+        return () => {
+            pb.collection('posts').unsubscribe('*');
+            backHandler.remove()  // Cleanup the subscription
+        };
     }, []);
 
     return (
@@ -540,43 +602,54 @@ const HomeScreen = () => {
                 animatedPosition={bottomSheetPosition}
                 handleIndicatorStyle={{ backgroundColor: '#ccc' }}
                 onChange={handleSheetChanges}
-
             >
-                <BottomSheetFlatList
-                    ref={flatListRef}
-                    data={markers}
-                    showsVerticalScrollIndicator={false}
-                    scrollEnabled={haveRecordData}
-                    stickyHeaderHiddenOnScroll={true}
-                    ListHeaderComponent={
-                        <Animated.View style={headerAnimatedStyle}>
-                            {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                    <Text style={{ fontSize: 20 }}>{t('tapBottomSheetHeader')}</Text>
-                                    <View style={{ padding: 5, borderRadius: 10, backgroundColor: '#8ac5db' }} >
-                                        <Icon source="paw" color={'#fff'} size={15} />
-                                    </View>
+                <Animated.View style={[styles.fullSize, listStyle]}>
+                    {/* {activeView === 'list' && ( */}
+                        <BottomSheetFlatList
+                            ref={flatListRef}
+                            data={markers}
+                            showsVerticalScrollIndicator={false}
+                            scrollEnabled={haveRecordData}
+                            ListHeaderComponent={
+                                <Animated.View style={headerAnimatedStyle}>
+                                    {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                            <Text style={{ fontSize: 20 }}>{t('tapBottomSheetHeader')}</Text>
+                                            <View style={{ padding: 5, borderRadius: 10, backgroundColor: '#8ac5db' }} >
+                                                <Icon source="paw" color={'#fff'} size={15} />
+                                            </View>
 
-                                    <Text style={{ fontSize: 20 }}>{t('noRecords')}</Text>
-                                </View>
+                                            <Text style={{ fontSize: 20 }}>{t('noRecords')}</Text>
+                                        </View>
+                                    }
+
+                                </Animated.View>
                             }
+                            renderItem={({ item }) => (
+                                <BottomSheetItem
+                                    item={item}
+                                    toggleLike={() => debouncedToggleLike(item.id)}
+                                    toggleReport={(reason: string) => toggleReport(item.id, reason)}
+                                    isLastItem={markers.indexOf(item) === markers.length - 1}
+                                    showDetail={() => showDetail()}
+                                />
 
-                        </Animated.View>
-                    }
-                    renderItem={({ item }) => (
-                        <BottomSheetItem
-                            item={item}
-                            toggleLike={() => debouncedToggleLike(item.id)}
-                            toggleReport={(reason: string) => toggleReport(item.id, reason)}
-                            isLastItem={markers.indexOf(item) === markers.length - 1}
+
+                            )}
                         />
-
-
+                    {/* )} */}
+                </Animated.View>
+                <Animated.View style={[styles.fullSize, detailStyle, { position: 'absolute', top: 0, left: 0, right: 0 }]}>
+                    {activeView === 'detail' && (
+                        <View style={ [styles.fullSize]}>
+                            <Button onPress={showList}>Show List</Button>
+                        </View>
                     )}
-                />
+                        </Animated.View>
+
             </BottomSheet>
             <Snackbar
-                wrapperStyle={{ bottom: -35 }}
+                wrapperStyle={{ bottom: 0 }}
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
                 action={{
@@ -596,6 +669,8 @@ const HomeScreen = () => {
                 bottomSheetPosition={bottomSheetPosition}
                 lastSnapPoint={bottomSheetSnapPoint}
                 bottomSheetRef={bottomSheetRef}
+                activeView={activeView}
+                showList={showList}
             />
 
         </View>
@@ -623,6 +698,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 20
     },
+    fullSize: {
+        width: '100%',
+        height: '100%'
+    }
 });
 
 export default HomeScreen;

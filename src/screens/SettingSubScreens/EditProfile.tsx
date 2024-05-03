@@ -4,7 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, i
 import { List, Button, useTheme, Avatar, Text, Icon, IconButton } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import * as SecureStore from 'expo-secure-store';
 import { useDispatch } from 'react-redux';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -66,10 +66,10 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
     const snapPoints = useMemo(() => ['20%', '20%'], []);
     const renderContent = () => (
         <View style={styles.bottomSheetItem}>
-            <Button icon={"camera"} mode="contained" onPress={handleOpenCamera}>
+            <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"camera"} mode="contained" onPress={handleOpenCamera}>
                 Take a Photo
             </Button>
-            <Button icon={"image"} mode="contained" onPress={handleOpenGallery}>
+            <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"image"} mode="contained" onPress={handleOpenGallery}>
                 Pick an Image from Gallery
             </Button>
         </View>
@@ -94,6 +94,9 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                             ) : (
                                 <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={70} color="#fff" />
                             )}
+                            <View style={styles.cameraIcon}>
+                                <Icon source="camera-outline" color={colors.primary} size={20}></Icon>
+                            </View>
                         </TouchableOpacity>
                         <View style={styles.userInfo}>
                             <Text style={styles.userName}>@{userData?.username}</Text>
@@ -141,6 +144,7 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                     <TextDialog2Btn
                         isVisible={isVisible}
                         onDismiss={() => setIsVisible(false)}
+                        onConfirm={() => { setIsVisible(false); logout() }}
                         title={t('logout') + '?'}
                         content='Are you sure you want to log out?'
                     />
@@ -149,11 +153,16 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
             <BottomSheet
                 ref={bottomSheetRef}
                 index={-1}
+                handleIndicatorStyle={{ backgroundColor: '#ccc' }}
                 snapPoints={snapPoints}
                 enablePanDownToClose={true}
+                backdropComponent={(props) => (
+                    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.4} />
+                )}
             >
                 {renderContent()}
             </BottomSheet>
+
             <Animated.View style={[styles.headerSmall, headerSmallStyle]}>
                 <Text style={styles.headerSmallText}>Your info</Text>
             </Animated.View>
@@ -169,7 +178,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     header: {
-        paddingTop: 120,
+        paddingTop: 130,
         paddingBottom: 10,
     },
     headerText: {
@@ -219,6 +228,15 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         gap: 10,
     },
+    cameraIcon: {
+        position: 'absolute',
+        backgroundColor: '#f0f9fc',
+        padding: 5,
+        borderRadius: 50,
+        bottom: 0,
+        right: -10,
+
+    },
     userInfo: {
         flexDirection: 'column',
         gap: 5,
@@ -257,7 +275,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: '#f0f9fc',
     },
-    bottomSheetItem:{
+    bottomSheetItem: {
         justifyContent: 'center',
         padding: 20,
         gap: 10
