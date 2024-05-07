@@ -8,17 +8,17 @@ import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import * as SecureStore from 'expo-secure-store';
 import { useDispatch } from 'react-redux';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-import { clearUserData } from '../../reducers/userSlice';
-import pb from '../../services/pocketBase';
-import TextDialog2Btn from '../../components/modal/textDialog2Btn';
-import i18n from '../../utils/i18n';
+import { clearUserData } from '../reducers/userSlice';
+import pb from '../services/pocketBase';
+import TextDialog2Btn from '../components/modal/textDialog2Btn';
+import i18n from '../utils/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../store/rootReducer';
+import { RootState } from '../store/rootReducer';
 
 interface SettingsProps { }
 
-const EditProfileScreen: React.FC<SettingsProps> = () => {
+const CreateNewScreen: React.FC<SettingsProps> = () => {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const dispatch = useDispatch();
@@ -85,14 +85,14 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                 style={styles.scrollView}>
                 <View style={styles.contentContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.headerText}>Your info</Text>
+                        <Text style={styles.headerText}>{t('createPost')}</Text>
                     </View>
                     <View style={styles.avatarContainer}>
                         <TouchableOpacity onPress={() => bottomSheetRef.current?.expand()}>
                             {imageUri ? (
-                                <Avatar.Image source={{ uri: imageUri }} size={80} />
+                                <Avatar.Image source={{ uri: imageUri }} size={70} />
                             ) : (
-                                <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={80} color="#fff" />
+                                <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={70} color="#fff" />
                             )}
                             <View style={styles.cameraIcon}>
                                 <Icon source="camera-outline" color={colors.primary} size={20}></Icon>
@@ -102,45 +102,6 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                             <Text style={styles.userName}>@{userData?.username}</Text>
                         </View>
                     </View>
-                    <List.Section style={styles.listSection}>
-                        <View style={styles.listItemContainer}>
-                            <List.Item
-                                title="Personal information"
-                                left={() => <List.Icon color={colors.primary} icon="shield-account-outline" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Email"
-                                left={() => <List.Icon color={colors.primary} icon="email-outline" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Account verification"
-                                left={() => <List.Icon color={colors.primary} icon="account-check-outline" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                        </View>
-                    </List.Section>
-                    <List.Section style={styles.listSection}>
-                        {/* <List.Subheader style={{ marginHorizontal: -5 }}>Settings</List.Subheader> */}
-                        <View style={styles.listItemContainer}>
-                            <List.Item
-                                title="Notifications"
-                                left={() => <List.Icon color={colors.primary} icon="bell-outline" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Measurement Units"
-                                left={() => <List.Icon color={colors.primary} icon="ruler-square" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Enhance Accuracy"
-                                left={() => <List.Icon color={colors.primary} icon="crosshairs-gps" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                        </View>
-                    </List.Section>
                     <TextDialog2Btn
                         isVisible={isVisible}
                         onDismiss={() => setIsVisible(false)}
@@ -164,7 +125,7 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
             </BottomSheet>
 
             <Animated.View style={[styles.headerSmall, headerSmallStyle]}>
-                <Text style={styles.headerSmallText}>Your info</Text>
+                <Text style={styles.headerSmallText}>{t('createPost')}</Text>
             </Animated.View>
             <IconButton style={styles.backButton} icon="arrow-left" size={25} onPress={() => navigation.goBack()} />
         </View>
@@ -234,7 +195,7 @@ const styles = StyleSheet.create({
         padding: 5,
         borderRadius: 50,
         bottom: 0,
-        right: -5,
+        right: -10,
 
     },
     userInfo: {
@@ -283,4 +244,4 @@ const styles = StyleSheet.create({
     // Define additional styles if necessary
 });
 
-export default EditProfileScreen;
+export default CreateNewScreen;

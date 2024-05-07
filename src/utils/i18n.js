@@ -90,7 +90,8 @@ i18n.use(initReactI18next).init({
         scamReport: 'Scam or fraudulent',
         spamReport: 'Spam or misleading',
         otherReport: 'Other',
-        reasonReport: 'Please share your reason.'
+        reasonReport: 'Please share your reason.',
+        createPost: 'Create post',
       },
     },
     vi: {
@@ -176,7 +177,8 @@ i18n.use(initReactI18next).init({
         scamReport: 'Lừa đảo hoặc gian lận',
         spamReport: 'Nội dung rác hoặc gây hiểu nhầm',
         otherReport: 'Khác',
-        reasonReport: 'Vui lòng cho biết lý do của bạn.'
+        reasonReport: 'Vui lòng cho biết lý do của bạn.',
+        createPost: 'Tạo bài viết',
       },
     },
     // Add more languages as needed

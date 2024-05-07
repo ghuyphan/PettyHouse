@@ -1,55 +1,46 @@
-import { useCallback } from 'react';
-import Animated, {
-  useSharedValue,
-  withTiming,
-  useAnimatedStyle,
-  interpolate,
-  runOnJS,
-  Easing
-} from 'react-native-reanimated';
+import { useSharedValue, withTiming, useAnimatedStyle, interpolate, runOnJS, Easing } from 'react-native-reanimated';
 
 export const useBottomSheetTransitionManager = (setActiveView: (view: 'detail' | 'list') => void) => {
   const transition = useSharedValue(0);
 
-  const showDetail = useCallback(() => {
+  const showDetail = () => {
     transition.value = withTiming(1, {
       duration: 300,
       easing: Easing.inOut(Easing.ease)
     }, (isFinished) => {
       if (isFinished) {
-        runOnJS(setActiveView)('detail'); // Ensure this runs after animation
+        runOnJS(setActiveView)('detail');
       }
     });
-  }, [setActiveView]);
+  };
 
-  const showList = useCallback(() => {
+  const showList = () => {
     transition.value = withTiming(0, {
       duration: 300,
       easing: Easing.inOut(Easing.ease)
     }, (isFinished) => {
       if (isFinished) {
-        runOnJS(setActiveView)('list'); // Ensure this runs after animation
+        runOnJS(setActiveView)('list');
       }
     });
-  }, [setActiveView]);
+  };
 
-  const listStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: interpolate(transition.value, [0, 1], [0, -300]) // Adjust translation values as needed
-      }
-    ],
-    opacity: interpolate(transition.value, [0, 1], [1, 0])
-  }));
+  const listStyle = useAnimatedStyle(() => {
+    return {
+        opacity: interpolate(transition.value, [0, 1], [1, 0]),
+        transform: [{ translateX: interpolate(transition.value, [0, 1], [0, -300]) }],
+        pointerEvents: transition.value === 1 ? 'none' : 'auto'
+    };
+});
 
-  const detailStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: interpolate(transition.value, [0, 1], [300, 0]) // Slide in from the right
-      }
-    ],
-    opacity: interpolate(transition.value, [0, 1], [0, 1])
-  }));
+const detailStyle = useAnimatedStyle(() => {
+    return {
+        opacity: interpolate(transition.value, [0, 1], [0, 1]),
+        transform: [{ translateX: interpolate(transition.value, [0, 1], [300, 0]) }],
+        pointerEvents: transition.value === 0 ? 'none' : 'auto'
+    };
+});
+
 
   return { showDetail, showList, listStyle, detailStyle };
 };

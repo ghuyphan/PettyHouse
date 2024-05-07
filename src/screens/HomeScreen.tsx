@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, BackHandler, Platform, useWindowDimensions } from 'react-native';
-import { FAB, Text, ActivityIndicator, Button, Snackbar, Icon } from 'react-native-paper';
+import { FAB, Text, ActivityIndicator, Snackbar, Icon } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -11,18 +11,12 @@ import Animated, {
     Easing,
     useAnimatedStyle,
     interpolate,
-    runOnJS,
 } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetFlatList, BottomSheetFlatListMethods, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList, BottomSheetFlatListMethods } from '@gorhom/bottom-sheet';
 import { debounce } from 'lodash';
 import eventsource from "react-native-sse";
 import 'react-native-url-polyfill/auto';
-interface CustomEventSource extends EventSource {
-    new(url: string | URL, eventSourceInitDict?: EventSourceInit): EventSource;
-    readonly CONNECTING: 0;
-    readonly OPEN: 1;
-    readonly CLOSED: 2;
-}
+import { useDispatch } from 'react-redux';
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
@@ -35,17 +29,25 @@ import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
 import BottomSheetItem from '../components/bottomSheet/bottomSheetItem';
 import PopupDialog from '../components/modal/popupDialog';
+import DetailBottomSheet from '../components/bottomSheet/detailBottomSheet';
+import { savePost, clearPost } from '../reducers/postSlice';
 
 //API import
 import { fetchRecordsWithinRadius } from '../api/fetchRecordWithinRadius';
 
 //Animation import
 import { useBottomSheetTransitionManager } from '../animation/HomeScreen/BottomSheetTransitionManager';
-import { useHeaderAnimation } from '../animation/HomeScreen/HeaderAnimation';
 
 //Type import
 import TypeMarker from '../types/markers';
 import TypeCirlce from '../types/mapCircle';
+
+interface CustomEventSource extends EventSource {
+    new(url: string | URL, eventSourceInitDict?: EventSourceInit): EventSource;
+    readonly CONNECTING: 0;
+    readonly OPEN: 1;
+    readonly CLOSED: 2;
+}
 
 const HomeScreen = () => {
     global.EventSource = eventsource as unknown as CustomEventSource;
@@ -57,6 +59,7 @@ const HomeScreen = () => {
     });
 
     const { t } = useTranslation();
+    const dispatch = useDispatch();
     const [searchQuery, setSearchQuery] = useState('');
     const [buttonPressed, setButtonPressed] = useState('');
     const [circleProps, setCircleProps] = useState<TypeCirlce | null>(null);
@@ -80,8 +83,15 @@ const HomeScreen = () => {
 
     // Use the transition manager
     const { showDetail, showList, listStyle, detailStyle } = useBottomSheetTransitionManager(setActiveView);
+    const showDetailHandler = (item: TypeMarker) => {
+        showDetail();
+        dispatch(savePost({ post: item }));
 
-    const flatListRef = useRef<BottomSheetFlatListMethods>(null);
+    }
+    const postDetail = useSelector((state: RootState) => state.post.postData);
+
+    const flatListRefList = useRef<BottomSheetFlatListMethods>(null);
+    const flatListRefDetail = useRef<BottomSheetFlatListMethods>(null);
     const bottomSheetPosition = useSharedValue<number>(0);
     const { height: windowHeight } = useWindowDimensions();
     const FABOffset = Platform.OS === 'ios' ? (windowHeight < 700 ? 150 : 170) : 90;
@@ -143,10 +153,10 @@ const HomeScreen = () => {
     const handleSheetChanges = useCallback((index: number) => {
         if (haveRecordData === true) {
             if (index === 0) {
-                flatListRef.current?.scrollToIndex({ index: 0, animated: false });
+                flatListRefList.current?.scrollToIndex({ index: 0, animated: false });
             }
         }
-    }, [haveRecordData, flatListRef]); // Make sure flatListRef is stable
+    }, [haveRecordData, flatListRefList]); // Make sure flatListRef is stable
 
 
     //Animation
@@ -362,48 +372,43 @@ const HomeScreen = () => {
         setSliderVisible(false);
     };
 
+    let lastToggle = 0;
+    const toggleInterval = 300;  // 300ms minimum interval between toggles
+
     const toggleLike = async (postId: string) => {
+        const now = Date.now();
+        if (now - lastToggle < toggleInterval) return;
+        lastToggle = now;
+
         const token = await SecureStore.getItemAsync('authToken');
+        const prevState = { ...markers.find(m => m.id === postId) };  // Capture previous state
+
+        // Optimistically update the UI
+        setMarkers(prevMarkers => prevMarkers.map(marker =>
+            marker.id === postId ? { ...marker, like: marker.hasLiked ? marker.like - 1 : marker.like + 1, hasLiked: !marker.hasLiked } : marker
+        ));
 
         try {
-            // Track if a toggle request is already in progress
-            let isRequestInProgress = false;
-            setMarkers(prevMarkers => prevMarkers.map(marker =>
-                marker.id === postId ? { ...marker, like: marker.hasLiked ? marker.like - 1 : marker.like + 1, hasLiked: !marker.hasLiked } : marker
-            ));
-
-            // Modify the toggle behavior
-            const toggle = async () => {
-                if (isRequestInProgress) return;
-
-                isRequestInProgress = true;
-                await pb.send(`/api/posts/${postId}/like`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                isRequestInProgress = false;
-            };
-
-            // Now directly call the toggle function
-            toggle();
-
+            await pb.send(`/api/posts/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
         } catch (error) {
+            // Roll back to previous state on error
             setMarkers(prevMarkers => prevMarkers.map(marker =>
-                marker.id === postId ? { ...marker, like: marker.hasLiked ? marker.like - 1 : marker.like + 1, hasLiked: !marker.hasLiked } : marker
+                marker.id === postId
+                    ? { ...marker, /* properties you want to update for the matched marker */ }
+                    : marker
             ));
-            // Handle error
-            setpopupMessage('Error');
-            openPopupDialog();
-            setTimeout(() => {
-                closePopupDialog();
-            }, 2000);
-
+            console.error('Error toggling like:', error);
+            // Optionally handle error UI here
         }
     };
 
-    const debouncedToggleLike = useRef(debounce(toggleLike, 800)).current;
+
+    const debouncedToggleLike = useRef(debounce(toggleLike, 200)).current;
 
     const toggleReport = async (postId: string, reason: string) => {
         const token = await SecureStore.getItemAsync('authToken');
@@ -526,7 +531,7 @@ const HomeScreen = () => {
                 >
 
                     {markers.map((marker, index) => (
-                        <CustomMarker key={index} marker={marker} index={index} bottomSheetRef={bottomSheetRef} flatListRef={flatListRef} />
+                        <CustomMarker key={index} marker={marker} index={index} bottomSheetRef={bottomSheetRef} flatListRef={flatListRefList} />
                     ))}
                     {circleProps && (
                         <Circle
@@ -603,49 +608,69 @@ const HomeScreen = () => {
                 handleIndicatorStyle={{ backgroundColor: '#ccc' }}
                 onChange={handleSheetChanges}
             >
+                {/* List Bottom Sheet to display all the posts*/}
                 <Animated.View style={[styles.fullSize, listStyle]}>
                     {/* {activeView === 'list' && ( */}
+                    <BottomSheetFlatList
+                        ref={flatListRefList}
+                        data={markers}
+                        showsVerticalScrollIndicator={false}
+                        scrollEnabled={haveRecordData}
+                        ListHeaderComponent={
+                            <Animated.View style={headerAnimatedStyle}>
+                                {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                        <Text style={{ fontSize: 20 }}>{t('tapBottomSheetHeader')}</Text>
+                                        <View style={{ padding: 5, borderRadius: 10, backgroundColor: '#8ac5db' }} >
+                                            <Icon source="paw" color={'#fff'} size={15} />
+                                        </View>
+
+                                        <Text style={{ fontSize: 20 }}>{t('noRecords')}</Text>
+                                    </View>
+                                }
+
+                            </Animated.View>
+                        }
+                        renderItem={({ item }) => (
+                            <BottomSheetItem
+                                item={item}
+                                toggleLike={() => debouncedToggleLike(item.id)}
+                                toggleReport={(reason: string) => toggleReport(item.id, reason)}
+                                isLastItem={markers.indexOf(item) === markers.length - 1}
+                                showDetail={() => showDetailHandler(item)}
+                            />
+
+
+                        )}
+                    />
+                    {/* )} */}
+                </Animated.View>
+
+                {/* Detail Bottom Sheet */}
+                <Animated.View style={[styles.fullSize, detailStyle, { position: 'absolute', top: 0, left: 0, right: 0 }]}>
+                    {activeView === 'detail' && (
                         <BottomSheetFlatList
-                            ref={flatListRef}
+                            ref={flatListRefDetail}
                             data={markers}
                             showsVerticalScrollIndicator={false}
                             scrollEnabled={haveRecordData}
                             ListHeaderComponent={
                                 <Animated.View style={headerAnimatedStyle}>
-                                    {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                            <Text style={{ fontSize: 20 }}>{t('tapBottomSheetHeader')}</Text>
-                                            <View style={{ padding: 5, borderRadius: 10, backgroundColor: '#8ac5db' }} >
-                                                <Icon source="paw" color={'#fff'} size={15} />
-                                            </View>
-
-                                            <Text style={{ fontSize: 20 }}>{t('noRecords')}</Text>
-                                        </View>
-                                    }
-
+                                    <Text style={{ fontSize: 20 }}>{t('comment')}</Text> 
                                 </Animated.View>
                             }
                             renderItem={({ item }) => (
-                                <BottomSheetItem
+                                <DetailBottomSheet
                                     item={item}
                                     toggleLike={() => debouncedToggleLike(item.id)}
                                     toggleReport={(reason: string) => toggleReport(item.id, reason)}
                                     isLastItem={markers.indexOf(item) === markers.length - 1}
                                     showDetail={() => showDetail()}
                                 />
-
-
                             )}
                         />
-                    {/* )} */}
-                </Animated.View>
-                <Animated.View style={[styles.fullSize, detailStyle, { position: 'absolute', top: 0, left: 0, right: 0 }]}>
-                    {activeView === 'detail' && (
-                        <View style={ [styles.fullSize]}>
-                            <Button onPress={showList}>Show List</Button>
-                        </View>
                     )}
-                        </Animated.View>
+                </Animated.View>
 
             </BottomSheet>
             <Snackbar

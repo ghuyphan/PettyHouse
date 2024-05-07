@@ -7,7 +7,9 @@ import { useTranslation } from 'react-i18next';
 import TextDialogCheckBox from '../modal/textDialogCheckBox';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
-interface BottomSheetItemProps {
+
+
+interface DetailBottomSheetProps {
     item: {
         created: string;
         avatar?: string;
@@ -24,7 +26,7 @@ interface BottomSheetItemProps {
     isLastItem: boolean;
 }
 
-const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem, toggleReport, showDetail }) => {
+const DetailBottomSheet: FC<DetailBottomSheetProps> = ({ item, toggleLike, isLastItem, toggleReport, showDetail }) => {
     const { t } = useTranslation();
     const createdDate = useMemo(() => moment(item.created), [item.created]);
     const currentDate = useMemo(() => moment(), []);
@@ -35,14 +37,13 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
     const [isVisible, setIsVisible] = useState(false);
 
     const timeAgoText = useMemo(() => {
-        const timeDiffMinutes = currentDate.diff(createdDate, 'minutes');
-        const timeDiffHours = Math.floor(timeDiffMinutes / 60);
-        if (timeDiffMinutes < 60) {
+        const timeDiffHours = currentDate.diff(createdDate, 'hours');
+        if (timeDiffHours < 1) {
             return t('lessThanOneHourAgo');
         } else if (timeDiffHours < 24) {
             return `${timeDiffHours} ${t('hoursAgo')}`;
         } else {
-            const daysDiff = Math.floor(timeDiffHours / 24);
+            const daysDiff = currentDate.diff(createdDate, 'days');
             if (daysDiff < 7) {
                 return `${daysDiff} ${t('daysAgo')}`;
             } else if (daysDiff < 31) {
@@ -50,7 +51,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                 return `${weeksDiff} ${weeksDiff > 1 ? t('weeksAgo') : t('weekAgo')}`;
             } else {
                 const monthsDiff = currentDate.diff(createdDate, 'months');
-                return `${monthsDiff} ${monthsDiff > 1 ? t('monthsAgo') : t('monthAgo')}`;
+                return `${monthsDiff} ${monthsDiff > 1 ? 'months' : 'month'} ago`;
             }
         }
     }, [createdDate, currentDate, t]);
@@ -236,4 +237,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BottomSheetItem;
+export default DetailBottomSheet;

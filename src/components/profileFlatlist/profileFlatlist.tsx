@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import TextDialogCheckBox from '../modal/textDialogCheckBox';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
-interface BottomSheetItemProps {
+interface ProfileFlatlistProps {
     item: {
         created: string;
         avatar?: string;
@@ -20,11 +20,10 @@ interface BottomSheetItemProps {
     };
     toggleLike: () => void;
     showDetail: () => void;
-    toggleReport: (reason: string) => void;
     isLastItem: boolean;
 }
 
-const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem, toggleReport, showDetail }) => {
+const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastItem, showDetail }) => {
     const { t } = useTranslation();
     const createdDate = useMemo(() => moment(item.created), [item.created]);
     const currentDate = useMemo(() => moment(), []);
@@ -72,10 +71,6 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
             transform: [{ scale: withSpring(scale.value, { damping: 3, stiffness: 150 }) }],
         };
     }, []);
-    const handleReport = (reason: string) => {
-        toggleReport(reason);
-        setIsVisible(false);
-    }
 
     return (
         <View style={styles.card}>
@@ -98,14 +93,8 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                     contentStyle={{ backgroundColor: '#ffff' }}
                     anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
                 >
-                    {/* <Menu.Item leadingIcon={'pencil-outline'} onPress={() => { }} title={t('edit')} /> */}
+                    <Menu.Item leadingIcon={'pencil-outline'} onPress={() => { }} title={t('edit')} />
                     <Menu.Item leadingIcon={'share'} onPress={() => { }} title={t('share')} />
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => (
-                        <>
-                            {setIsVisible(true)}
-                            {closeMenu()}
-                        </>
-                    )} title={t('report')} />
                 </Menu>
             </View>
             <Text style={styles.title}>
@@ -136,15 +125,6 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                 <Text style={styles.timeAgo}>{timeAgoText}</Text>
             </View>
             {!isLastItem && <View style={styles.divider} />}
-            <TextDialogCheckBox
-                confirmLabel={t('report')}
-                dismissLabel={t('cancelButton')}
-                dismissable={true}
-                isVisible={isVisible}
-                onDismiss={() => setIsVisible(false)}
-                onConfirm={(reason) => handleReport(reason)}
-                title={t('reportTitle')}
-            />
 
         </View>
     );
@@ -154,7 +134,6 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: '#fff',
         borderRadius: 15,
-        marginHorizontal: 20,
         flexDirection: 'column'
     },
     topContainer: {
@@ -236,4 +215,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BottomSheetItem;
+export default ProfileFlatlist;

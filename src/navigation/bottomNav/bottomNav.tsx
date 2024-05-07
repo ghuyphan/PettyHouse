@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, BottomNavigation } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -9,11 +8,13 @@ import { useTranslation } from 'react-i18next';
 
 import HomeScreen from '../../screens/HomeScreen';
 import SettingScreen from '../../screens/SettingScreen';
+import ProfileScreen from '../../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomNav() {
     const { t } = useTranslation();
+    const navigation = useNavigation();
 
     return (
         <Tab.Navigator
@@ -27,21 +28,23 @@ export default function BottomNav() {
                     safeAreaInsets={insets}
                     theme={{ colors: { primary: '#FFFF', secondaryContainer: '#d2edf7' } }}
                     activeColor='#8ac5db'
-                    // labeled={false}
                     onTabPress={({ route, preventDefault }) => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
-
-                        if (event.defaultPrevented) {
+                        if (route.name === "Add") {
                             preventDefault();
+                            navigation.navigate("CreateNew"); // Change to your stack screen name
                         } else {
-                            navigation.dispatch({
-                                ...CommonActions.navigate(route.name, route.params),
-                                target: state.key,
+                            const event = navigation.emit({
+                                type: 'tabPress',
+                                target: route.key,
+                                canPreventDefault: true,
                             });
+
+                            if (!event.defaultPrevented) {
+                                navigation.dispatch({
+                                    ...CommonActions.navigate(route.name, route.params),
+                                    target: state.key,
+                                });
+                            }
                         }
                     }}
                     renderIcon={({ route, focused, color }) => {
@@ -81,21 +84,21 @@ export default function BottomNav() {
             />
             <Tab.Screen
                 name="Nearby"
-                component={SettingsScreen}
+                component={SettingScreen}
                 options={{
-                    tabBarLabel: 'Gần đây',
+                    tabBarLabel: 'Hộp thư',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
-                            <Icon name="calendar-blank" size={size} color={color} />
+                            <Icon name="inbox" size={size} color={color} />
                         ) : (
-                            <Icon name="calendar-blank-outline" size={size} color={color} />
+                            <Icon name="inbox-outline" size={size} color={color} />
                         );
                     },
                 }}
             />
             <Tab.Screen
                 name="Add"
-                component={SettingsScreen}
+                component={View} // This can be an empty View as we are overriding the tab press behavior
                 options={{
                     tabBarLabel: 'Tạo mới',
                     tabBarIcon: ({ focused, color, size }) => {
@@ -109,9 +112,9 @@ export default function BottomNav() {
             />
             <Tab.Screen
                 name="Profile"
-                component={SettingsScreen}
+                component={ProfileScreen}
                 options={{
-                    tabBarLabel: 'Cá nhân',
+                    tabBarLabel: 'Hồ sơ',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="account" size={size} color={color} />
@@ -125,7 +128,7 @@ export default function BottomNav() {
                 name="Account"
                 component={SettingScreen}
                 options={{
-                    tabBarLabel: 'Tài khoản',
+                    tabBarLabel: 'Cài đặt',
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="cog" size={size} color={color} />
