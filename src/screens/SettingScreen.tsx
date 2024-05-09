@@ -96,7 +96,7 @@ const SettingScreen: React.FC<SettingsProps> = () => {
     }
     return (
         <View style={styles.container}>
-            
+
             <Animated.ScrollView
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
@@ -116,12 +116,18 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                             )}
                             <View style={styles.userInfo}>
                                 {/* <Text style={styles.name}>{userData?.name}</Text> */}
-                                <Text style={styles.userName}>@{userData?.username}</Text>
-                                <View style={styles.verifiedContainer}>
-                                <Icon source="check-circle" color={'#fff'} size={15} />
-                                <Text style={styles.verifiedText}>{userData?.verified ? 'Đã xác thực' : 'Unverified User'}</Text>
+                                <Text style={styles.userName}>{userData?.username}</Text>
+                                {userData?.verified ?   
+                                    <View style={styles.verifiedContainer}>
+                                    <Icon source="check-circle" color={'#fff'} size={15} />
+                                    <Text style={styles.verifiedText}>{t('verifiedUser')}</Text>
+                                </View> 
+                                : 
+                                <View style={styles.unVerifiedContainer}>
+                                    <Icon source="close-circle" color={'#fff'} size={15} />
+                                    <Text style={styles.verifiedText}>{t('unverifiedUser')}</Text>
+                                </View>}
 
-                                </View>
                             </View>
                         </View>
                     </TouchableOpacity>
@@ -132,17 +138,17 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                             <List.Item
                                 title="Tracker Guide"
                                 left={() => <List.Icon color={colors.primary} icon="book-open-variant" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="Features Guide"
                                 left={() => <List.Icon color={colors.primary} icon="format-list-bulleted" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="Help Center"
                                 left={() => <List.Icon color={colors.primary} icon="lifebuoy" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                         </View>
                     </List.Section>
@@ -152,17 +158,17 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                             <List.Item
                                 title="Notifications"
                                 left={() => <List.Icon color={colors.primary} icon="bell-outline" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="Measurement Units"
                                 left={() => <List.Icon color={colors.primary} icon="ruler-square" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="Enhance Accuracy"
                                 left={() => <List.Icon color={colors.primary} icon="crosshairs-gps" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                         </View>
                     </List.Section>
@@ -172,22 +178,22 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                             <List.Item
                                 title="About"
                                 left={() => <List.Icon color={colors.primary} icon="information-outline" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="Shop"
                                 left={() => <List.Icon color={colors.primary} icon="shopping-outline" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="Blog"
                                 left={() => <List.Icon color={colors.primary} icon="pencil-outline" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                             <List.Item
                                 title="End Demo Mode"
                                 left={() => <List.Icon color={colors.primary} icon="exit-to-app" />}
-                                right={() => <List.Icon style={{marginRight: -10}} color={colors.primary} icon="chevron-right" />}
+                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                         </View>
                     </List.Section>
@@ -276,7 +282,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
         borderRadius: 20,
-        gap: 15,
+        gap: 10,
     },
     userInfo: {
         flexDirection: 'column',
@@ -291,15 +297,25 @@ const styles = StyleSheet.create({
         color: '#333',
         fontWeight: '600',
     },
-    verifiedContainer:{
-        flexDirection: 'row',
+    verifiedContainer: {
+        flexDirection: 'row', 
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 5,
-        backgroundColor: '#77DD77',
-        padding: 5,
+        justifyContent: 'center', 
+        paddingVertical: 5, 
+        paddingHorizontal: 10, 
+        backgroundColor: '#77DD77', 
         borderRadius: 50,
-        width: 120,
+        gap: 5
+    },
+    unVerifiedContainer: {
+        flexDirection: 'row', 
+        alignItems: 'center',
+        justifyContent: 'center', 
+        paddingVertical: 5, 
+        paddingHorizontal: 10, 
+        backgroundColor: '#FF5733', 
+        borderRadius: 50,
+        gap: 5
     },
     verifiedText: {
         color: '#fff',

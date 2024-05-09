@@ -99,7 +99,7 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                             </View>
                         </TouchableOpacity>
                         <View style={styles.userInfo}>
-                            <Text style={styles.userName}>@{userData?.username}</Text>
+                            <Text style={styles.userName}>{userData?.username}</Text>
                         </View>
                     </View>
                     <List.Section style={styles.listSection}>

@@ -55,6 +55,7 @@ export default function BottomNav() {
 
                         return null;
                     }}
+                
                     getLabelText={({ route }) => {
                         const { options } = descriptors[route.key];
                         const label =
@@ -77,7 +78,7 @@ export default function BottomNav() {
                         return focused ? (
                             <Icon name="map-marker" size={size} color={color} />
                         ) : (
-                            <Icon name="map-marker-outline" size={size} color={color} />
+                            <Icon name="map-marker-outline" size={size} color={color} /> 
                         );
                     },
                 }}
@@ -86,7 +87,7 @@ export default function BottomNav() {
                 name="Nearby"
                 component={SettingScreen}
                 options={{
-                    tabBarLabel: 'Hộp thư',
+                    tabBarLabel: t('inbox'),
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="inbox" size={size} color={color} />
@@ -100,7 +101,7 @@ export default function BottomNav() {
                 name="Add"
                 component={View} // This can be an empty View as we are overriding the tab press behavior
                 options={{
-                    tabBarLabel: 'Tạo mới',
+                    tabBarLabel: t('create'),
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="plus-circle" size={size} color={color} />
@@ -114,7 +115,7 @@ export default function BottomNav() {
                 name="Profile"
                 component={ProfileScreen}
                 options={{
-                    tabBarLabel: 'Hồ sơ',
+                    tabBarLabel: t('profile'),
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="account" size={size} color={color} />
@@ -128,7 +129,7 @@ export default function BottomNav() {
                 name="Account"
                 component={SettingScreen}
                 options={{
-                    tabBarLabel: 'Cài đặt',
+                    tabBarLabel: t('settings'),
                     tabBarIcon: ({ focused, color, size }) => {
                         return focused ? (
                             <Icon name="cog" size={size} color={color} />
@@ -139,14 +140,6 @@ export default function BottomNav() {
                 }}
             />
         </Tab.Navigator>
-    );
-}
-
-function SettingsScreen() {
-    return (
-        <View style={styles.container}>
-            <Text variant="headlineMedium">Settings!</Text>
-        </View>
     );
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate } from 'react-native-reanimated';
-import { List, Button, useTheme, Avatar, Text, Icon, IconButton } from 'react-native-paper';
+import { Button, useTheme, Avatar, Text, Icon, IconButton, Banner, TextInput } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -24,8 +24,10 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const [isLoading, setIsLoading] = useState(false);
+    const [bannerVisible, setBannerVisible] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
     const [imageUri, setImageUri] = useState<null>(null);
+    const textInputRef = useRef<TextInput>(null);
     const bottomSheetRef = useRef<BottomSheet>(null);
     const userData = useSelector((state: RootState) => state.user.userData);
 
@@ -37,6 +39,17 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
     const scrollHandler = useAnimatedScrollHandler((event) => {
         scrollY.value = event.contentOffset.y;
     });
+    const handleClose = (() => {
+        if (Keyboard.isVisible()) {
+            Keyboard.dismiss();
+            setTimeout(() => {
+                navigation.goBack();
+            }, 500); // Wait for the keyboard dismiss animation to complete
+        } else {
+            navigation.goBack();
+        }
+
+    })
 
     const handleOpenGallery = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -44,10 +57,14 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
             alert('Permission to access gallery is required!');
             return;
         }
-        const pickerResult = await ImagePicker.launchImageLibraryAsync();
+        const pickerResult = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,  // Enables basic cropping
+            aspect: [4, 4],        // Aspect ratio to maintain during cropping
+        });
         if (!pickerResult.canceled) {
             setImageUri(pickerResult.assets[0].uri);
-            console.log(pickerResult.assets);
+            console.log(pickerResult);
         }
     };
 
@@ -57,11 +74,19 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
             alert('Permission to access camera is required!');
             return;
         }
-        const pickerResult = await ImagePicker.launchCameraAsync();
+        const pickerResult = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,  // Enables basic cropping
+            aspect: [4, 4],        // Aspect ratio to maintain during cropping
+        });
         if (!pickerResult.canceled) {
             setImageUri(pickerResult.assets[0].uri);
         }
     };
+    useEffect(() => {
+        if (userData?.verified) {
+            setBannerVisible(false);
+        }
+    }, []);
 
     const snapPoints = useMemo(() => ['20%', '20%'], []);
     const renderContent = () => (
@@ -82,7 +107,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                style={styles.scrollView}>
+            >
                 <View style={styles.contentContainer}>
                     <View style={styles.header}>
                         <Text style={styles.headerText}>{t('createPost')}</Text>
@@ -90,25 +115,39 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                     <View style={styles.avatarContainer}>
                         <TouchableOpacity onPress={() => bottomSheetRef.current?.expand()}>
                             {imageUri ? (
-                                <Avatar.Image source={{ uri: imageUri }} size={70} />
+                                <Avatar.Image source={{ uri: imageUri }} size={50} />
                             ) : (
-                                <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={70} color="#fff" />
+                                <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={50} color="#fff" />
                             )}
-                            <View style={styles.cameraIcon}>
-                                <Icon source="camera-outline" color={colors.primary} size={20}></Icon>
-                            </View>
                         </TouchableOpacity>
                         <View style={styles.userInfo}>
-                            <Text style={styles.userName}>@{userData?.username}</Text>
+                            <Text style={styles.userName}>{userData?.username}</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Avatar' as never)}>
+                                <View style={styles.locationContainer}>
+                                    <Icon source={'navigation-variant'} color={'#8ac5db'} size={15}></Icon>
+                                    <Text style={{ color: '#8ac5db', fontWeight: 'bold' }}>Vị trí hiện tại</Text>
+                                </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                    <TextDialog2Btn
-                        isVisible={isVisible}
-                        onDismiss={() => setIsVisible(false)}
-                        onConfirm={() => { setIsVisible(false); logout() }}
-                        title={t('logout') + '?'}
-                        content='Are you sure you want to log out?'
-                    />
+                    <TouchableWithoutFeedback onPress={() => textInputRef.current?.focus()}>
+                        <View style={{ height: 500 }}>
+                            <TextInput
+                                mode="flat"
+                                placeholder="What's on your mind?"
+                                multiline
+                                disabled={!userData?.verified}
+                                ref={textInputRef}
+                                // outlineColor='transparent'
+                                verticalAlign='top'
+                                selectionColor='#8ac5db'
+                                underlineStyle={{ backgroundColor: 'transparent' }}
+                                underlineColor='transparent'
+                                activeUnderlineColor='transparent'
+                                style={{ backgroundColor: 'transparent' }} // Ensure the text input aligns text at the top
+                            />
+                        </View>
+                    </TouchableWithoutFeedback>
                 </View>
             </Animated.ScrollView>
             <BottomSheet
@@ -127,7 +166,19 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
             <Animated.View style={[styles.headerSmall, headerSmallStyle]}>
                 <Text style={styles.headerSmallText}>{t('createPost')}</Text>
             </Animated.View>
-            <IconButton style={styles.backButton} icon="arrow-left" size={25} onPress={() => navigation.goBack()} />
+            <IconButton
+                style={styles.backButton}
+                icon="close"
+                size={25}
+                onPress={handleClose}
+            />
+            <Button
+                style={styles.postButton}
+                labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+                disabled={true}
+            >
+                Đăng
+            </Button>
         </View>
     );
 };
@@ -136,11 +187,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
-        paddingHorizontal: 20,
+        // paddingHorizontal: 20,
     },
     header: {
         paddingTop: 130,
-        paddingBottom: 10,
     },
     headerText: {
         fontSize: 30,
@@ -153,8 +203,14 @@ const styles = StyleSheet.create({
         marginTop: 57,
         backgroundColor: 'transparent',
     },
+    postButton:{
+        position: 'absolute',
+        top: 0,
+        right: 10,
+        marginTop: 57,
+        backgroundColor: 'transparent',
+    },
     headerSmall: {
-        // marginTop: 60,
         flexDirection: 'row',
         paddingTop: 60,
         paddingHorizontal: 20,
@@ -172,74 +228,42 @@ const styles = StyleSheet.create({
         fontSize: 20,
         marginLeft: 50,
     },
-    scrollView: {
-        flex: 1,
-        backgroundColor: '#fff', // Match the background color
-    },
     contentContainer: {
         flex: 1,
+        paddingHorizontal: 20,
+
     },
     avatarContainer: {
-        flexDirection: 'column',
-        paddingHorizontal: 20,
+        flexDirection: 'row',
         paddingVertical: 10,
         alignItems: 'center',
-        justifyContent: 'center',
         marginTop: 10,
         borderRadius: 20,
         gap: 10,
-    },
-    cameraIcon: {
-        position: 'absolute',
-        backgroundColor: '#f0f9fc',
-        padding: 5,
-        borderRadius: 50,
-        bottom: 0,
-        right: -10,
-
     },
     userInfo: {
         flexDirection: 'column',
         gap: 5,
     },
     userName: {
-        fontSize: 18,
-        color: '#333',
-    },
-    // name: {
-    //     fontSize: 20,
-    //     color: '#333',
-    //     fontWeight: '600',
-    // },
-    verifiedContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 5,
-        backgroundColor: '#77DD77',
-        padding: 5,
-        borderRadius: 50,
-    },
-    verifiedText: {
-        color: '#fff',
-    },
-    logoutButton: {
-        marginTop: 30,
-        backgroundColor: '#8ac5db', // This should be the color you want for your logout button
-    },
-    listSection: {
-        marginTop: 20,
-    },
-    listItemContainer: {
-        paddingLeft: 20,
-        paddingVertical: 10,
-        borderRadius: 20,
-        backgroundColor: '#f0f9fc',
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#8ac5db',
     },
     bottomSheetItem: {
         justifyContent: 'center',
         padding: 20,
         gap: 10
+    },
+    locationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        backgroundColor: '#f0f9fc',
+        borderRadius: 50,
+        gap: 5
     },
     // Define additional styles if necessary
 });

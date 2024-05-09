@@ -1,4 +1,4 @@
-import React, { FC, useMemo, useState } from 'react';
+import React, { FC, useMemo, useState, useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Avatar, Button, Menu, IconButton, Snackbar } from 'react-native-paper';
@@ -57,25 +57,23 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
 
     const scale = useSharedValue(1);
 
-    const handleToggleLike = () => {
-        scale.value = 1.1;  // Slightly scale up when liked
+    const handleToggleLike = useCallback(() => {
+        scale.value = 1.15;
         toggleLike();
-    
-        // Reset the scale after the animation is complete
         setTimeout(() => {
-            scale.value = 1;  // Reset scale to normal
-        }, 100);  // The delay should match the duration of the animation
-    };
+            scale.value = 1;
+        }, 100);
+    }, [toggleLike, scale]);
     
     const animatedStyle = useAnimatedStyle(() => {
         return {
             transform: [{ scale: withSpring(scale.value, { damping: 3, stiffness: 150 }) }],
         };
     }, []);
-    const handleReport = (reason: string) => {
+    const handleReport = useCallback((reason: string) => {
         toggleReport(reason);
         setIsVisible(false);
-    }
+    }, [toggleReport]);
 
     return (
         <View style={styles.card}>
@@ -87,7 +85,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                         <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color="#fff" />
                     )}
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>@{item.username}</Text>
+                        <Text style={styles.userName}>{item.username}</Text>
                         <Text style={styles.address}>{item.address}</Text>
                     </View>
 
@@ -95,11 +93,12 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                 <Menu
                     visible={menuVisible}
                     onDismiss={closeMenu}
+                    elevation={1}
                     contentStyle={{ backgroundColor: '#ffff' }}
                     anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
                 >
                     {/* <Menu.Item leadingIcon={'pencil-outline'} onPress={() => { }} title={t('edit')} /> */}
-                    <Menu.Item leadingIcon={'share'} onPress={() => { }} title={t('share')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share'} titleStyle={{ color: '#8ac5db' }} onPress={() => {}} title={t('share')} />
                     <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => (
                         <>
                             {setIsVisible(true)}
@@ -190,9 +189,9 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     image: {
-        width: '100%',
-        height: 280,
-        borderRadius: 15,
+        flex: 1,
+        borderRadius: 15,  // Maintain rounded corners if desired
+        aspectRatio: 1 // Your aspect ratio
         // aspectRatio: 1
     },
     actionSection: {

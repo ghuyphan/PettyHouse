@@ -10,13 +10,11 @@ const AvatarScreen: React.FC = () => {
     const avatarUri = userData?.avatar;
     return (
         <View style={styles.container}>
-            <Animated.View style={{ width: 100, height: 100, backgroundColor: 'green' }} sharedTransitionTag="avatar">
-                {avatarUri ? (
-                    <Avatar.Image source={{ uri: avatarUri }} size={65} />
-                ) : (
-                    <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={65} color="#fff" />
-                )}
-            </Animated.View>
+            {avatarUri ? (
+                <Avatar.Image source={{ uri: avatarUri }} size={200} />
+            ) : (
+                <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={200} color="#fff" />
+            )}
         </View >
     )
 }
@@ -25,6 +23,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#fff',
     },
 })
 export default AvatarScreen;

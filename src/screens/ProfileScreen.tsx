@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import pb from '../services/pocketBase';
 import i18n from '../utils/i18n';
+import { debounce } from 'lodash';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/rootReducer';
 import TypeMarker from '../types/markers';
@@ -41,6 +42,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
         const records = await pb.collection('posts').getFullList({
             filter: `user = "${userData?.id}"`,
             expand: 'user,likes_via_post_id',
+            sort: '-created',
         });
         const newPosts = records.map(record => ({
             id: record.id,
@@ -50,13 +52,14 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
             },
             title: record.text,
             address: record.address || '-',
-            image: constructImageURL(record.image, record.id),
+            image: record.image,
             like: record.likeCount,
             hasLiked: record.expand?.likes_via_post_id?.some((like) => like.user_id === userData?.id) || false,
             dislike: record.dislikeCount,
             username: record.expand?.user.username,
             avatar: record.expand?.user.avatar,
-            created: record.created
+            created: record.created,
+            visible: record.visible
         }));
         setPosts(newPosts);
         setIsLoading(false);
@@ -76,40 +79,51 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
         scrollY.value = event.contentOffset.y;
     });
 
-    const handleOpenGallery = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permissionResult.granted) {
-            alert('Permission to access gallery is required!');
-            return;
-        }
-        const pickerResult = await ImagePicker.launchImageLibraryAsync();
-        if (!pickerResult.canceled) {
-            setImageUri(pickerResult.assets[0].uri);
-            console.log(pickerResult.assets);
+    let lastToggle = 0;
+    const toggleInterval = 300;  // 300ms minimum interval between toggles
+    const toggleLike = async (postId: string) => {
+        const now = Date.now();
+        if (now - lastToggle < toggleInterval) return;
+        lastToggle = now;
+
+        const token = await SecureStore.getItemAsync('authToken');
+        const prevState = { ...posts.find(m => m.id === postId) };  // Capture previous state
+
+        // Optimistically update the UI
+        setPosts(prevPosts => prevPosts.map(posts =>
+            posts.id === postId ? { ...posts, like: posts.hasLiked ? posts.like - 1 : posts.like + 1, hasLiked: !posts.hasLiked } : posts
+        ));
+
+        try {
+            await pb.send(`/api/posts/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+        } catch (error) {
+            // Roll back to previous state on error
+            setPosts(prevPosts => prevPosts.map(posts =>
+                posts.id === postId
+                    ? { ...posts, /* properties you want to update for the matched marker */ }
+                    : posts
+            ));
+            console.error('Error toggling like:', error);
+            // Optionally handle error UI here
         }
     };
 
-    const handleOpenCamera = async () => {
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permissionResult.granted) {
-            alert('Permission to access camera is required!');
-            return;
-        }
-        const pickerResult = await ImagePicker.launchCameraAsync();
-        if (!pickerResult.canceled) {
-            setImageUri(pickerResult.assets[0].uri);
-        }
-    };
 
+    const debouncedToggleLike = useRef(debounce(toggleLike, 200)).current;
     const snapPoints = useMemo(() => ['20%', '20%'], []);
     const renderContent = () => (
         <View style={styles.bottomSheetItem}>
-            <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"camera"} mode="contained" onPress={handleOpenCamera}>
+            {/* <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"camera"} mode="contained" onPress={() => }>
                 Take a Photo
             </Button>
-            <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"image"} mode="contained" onPress={handleOpenGallery}>
+            <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"image"} mode="contained" onPress={() => }>
                 Pick an Image from Gallery
-            </Button>
+            </Button> */}
         </View>
     );
 
@@ -130,18 +144,29 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                     onRefresh={fetchUserPosts}
                     refreshing={isReloading}
                     style={styles.scrollView}
-                    ListEmptyComponent={() => <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                        <ProfileSkeletonLoading isLoading={isLoading} />
-
-                    </View>}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={{ flexGrow: 1, marginBottom: 0 }}
+                    ListEmptyComponent={() => (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 20 }}>
+                            <Text style={{ fontSize: 20, marginBottom: 10 }}>{t('haventPosted')}</Text>
+                            <Button
+                                buttonColor='#f0f9fc'
+                                textColor='#8ac5db'
+                                mode="contained"
+                                onPress={() => navigation.navigate('CreateNew' as never)} // Adjust navigation as necessary
+                            >
+                                {t('startYourFirstPost')}
+                            </Button>
+                        </View>
+                    )}
                     ListHeaderComponent={() => (
                         <View style={styles.headerContainer}>
                             <View style={styles.avatarContainer}>
                                 <View style={styles.userInfo}>
                                     <Text style={styles.nameHeader}>{userData?.name}</Text>
-                                    <Text style={styles.userNameHeader}>@{userData?.username}</Text>
+                                    <Text style={styles.userNameHeader}>{userData?.username}</Text>
                                 </View>
-                                <TouchableOpacity onPress={() => navigation.navigate('Avatar')}>
+                                <TouchableOpacity onPress={() => navigation.navigate('Avatar' as never)}>
                                     {imageUri ? (
                                         <Avatar.Image source={{ uri: imageUri }} size={65} />
                                     ) : (
@@ -157,8 +182,8 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                                 </TouchableOpacity>
                             </View>
                             <View style={styles.infoContainer}>
-                                <Button style={{ flex: 1 }} mode='contained'>Edit Profile</Button>
-                                <Button style={{ flex: 1 }} mode='contained'>Share Profile</Button>
+                                <Button buttonColor='#f0f9fc' textColor='#8ac5db' style={{ flex: 1 }} mode='contained'>Edit Profile</Button>
+                                <Button buttonColor='#f0f9fc' textColor='#8ac5db' style={{ flex: 1 }} mode='contained'>Share Profile</Button>
                             </View>
                             <View style={styles.divider} />
                         </View>
@@ -170,6 +195,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                             <ProfileFlatlist
                                 item={item}
                                 isLastItem={posts.indexOf(item) === posts.length - 1}
+                                toggleLike={() => debouncedToggleLike(item.id)}
                             />
                         </View>
                     )}

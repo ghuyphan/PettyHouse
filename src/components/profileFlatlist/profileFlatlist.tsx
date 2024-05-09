@@ -17,6 +17,7 @@ interface ProfileFlatlistProps {
         image: string;
         hasLiked: boolean;
         like: number;
+        visible: boolean;
     };
     toggleLike: () => void;
     showDetail: () => void;
@@ -57,7 +58,7 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
     const scale = useSharedValue(1);
 
     const handleToggleLike = () => {
-        scale.value = 1.1;  // Slightly scale up when liked
+        scale.value = 1.15;  // Slightly scale up when liked
         toggleLike();
     
         // Reset the scale after the animation is complete
@@ -82,7 +83,7 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                         <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color="#fff" />
                     )}
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>@{item.username}</Text>
+                        <Text style={styles.userName}>{item.username}</Text>
                         <Text style={styles.address}>{item.address}</Text>
                     </View>
 
@@ -91,16 +92,17 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                     visible={menuVisible}
                     onDismiss={closeMenu}
                     contentStyle={{ backgroundColor: '#ffff' }}
+                    elevation={1}
                     anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
                 >
-                    <Menu.Item leadingIcon={'pencil-outline'} onPress={() => { }} title={t('edit')} />
-                    <Menu.Item leadingIcon={'share'} onPress={() => { }} title={t('share')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'pencil-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => {}} title={t('edit')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share'} titleStyle={{ color: '#8ac5db' }} onPress={() => {}} title={t('share')} />
                 </Menu>
             </View>
             <Text style={styles.title}>
                 {item.title}
             </Text>
-            <Image source={{ uri: item.image }} style={styles.image} />
+            <Image  source={{ uri: item.image }} style={styles.image} />
             {item.like > 0 && <Text style={styles.like}>{item.like} {t('likes')}</Text>}
             <View style={styles.actionSection}>
                 <View style={styles.likeDislikeButtons}>
@@ -169,11 +171,11 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     image: {
-        width: '100%',
-        height: 280,
-        borderRadius: 15,
-        // aspectRatio: 1
+        flex: 1,
+        borderRadius: 15,  // Maintain rounded corners if desired
+        aspectRatio: 1 // Your aspect ratio
     },
+    
     actionSection: {
         flexDirection: 'row',
         alignItems: 'center',

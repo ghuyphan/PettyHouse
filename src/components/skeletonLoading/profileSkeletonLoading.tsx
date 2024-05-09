@@ -29,7 +29,7 @@ const ProfileSkeletonLoading: FC<ProfileSkeletonLoadingProps> = ({ isLoading }) 
                         { key: 'button2', width: '50%', height: 40, borderRadius: 50 },
                     ], flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between', gap: 5
                 },
-                { key: 'divider', width: '100%', height: 5, marginTop: 20, marginBottom: 30, borderRadius: 50 },
+                { key: 'divider', width: '100%', height: 5, marginTop: 20, marginBottom: 40, borderRadius: 50 },
                 {
                     key: 'topRow1', children: [
                         { key: 'avatar1', width: 36, height: 36, borderRadius: 50, marginRight: 10 },
@@ -42,7 +42,7 @@ const ProfileSkeletonLoading: FC<ProfileSkeletonLoadingProps> = ({ isLoading }) 
                     ], flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10
                 },
                 { key: 'title1', width: '80%', height: 14, marginBottom: 10 },
-                { key: 'image1', width: '100%', height: 280, borderRadius: 15, marginBottom: 50 },
+                { key: 'image1', width: '100%', height: '100%', borderRadius: 15, marginBottom: 50 },
                 {
                     key: 'topRow1', children: [
                         { key: 'avatar1', width: 36, height: 36, borderRadius: 50, marginRight: 10 },
@@ -55,7 +55,7 @@ const ProfileSkeletonLoading: FC<ProfileSkeletonLoadingProps> = ({ isLoading }) 
                     ], flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10
                 },
                 { key: 'title1', width: '80%', height: 14, marginBottom: 10 },
-                { key: 'image1', width: '100%', height: 280, borderRadius: 15, marginBottom: 20 },
+                { key: 'image1', width: '100%', height: '100%', borderRadius: 15, marginBottom: 20 },
             ]}
         />
     )

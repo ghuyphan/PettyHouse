@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, BackHandler, Platform, useWindowDimensions } from 'react-native';
-import { FAB, Text, ActivityIndicator, Snackbar, Icon } from 'react-native-paper';
+import { FAB, Text, ActivityIndicator, Snackbar, Icon, Button } from 'react-native-paper';
 import MapView, { Circle } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -11,12 +11,14 @@ import Animated, {
     Easing,
     useAnimatedStyle,
     interpolate,
+    Extrapolation,
 } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetFlatList, BottomSheetFlatListMethods } from '@gorhom/bottom-sheet';
 import { debounce } from 'lodash';
 import eventsource from "react-native-sse";
 import 'react-native-url-polyfill/auto';
 import { useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 
 //Component import
 import { RootState } from '../store/rootReducer'; // Adjust the path if needed
@@ -25,7 +27,6 @@ import SliderDialog from '../components/modal/sliderDialog';
 import CustomMarker from '../components/marker/marker';
 import pb from '../services/pocketBase';
 import * as Location from 'expo-location';
-import { constructImageURL } from '../utils/constructURLUtils';
 import SearchbarComponent from '../components/searchBar/searchBar';
 import BottomSheetItem from '../components/bottomSheet/bottomSheetItem';
 import PopupDialog from '../components/modal/popupDialog';
@@ -60,6 +61,7 @@ const HomeScreen = () => {
 
     const { t } = useTranslation();
     const dispatch = useDispatch();
+    const navigation = useNavigation();
     const [searchQuery, setSearchQuery] = useState('');
     const [buttonPressed, setButtonPressed] = useState('');
     const [circleProps, setCircleProps] = useState<TypeCirlce | null>(null);
@@ -101,6 +103,31 @@ const HomeScreen = () => {
     const [reason, setReason] = useState('');
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarText, setSnackbarText] = useState('');
+
+    const emptyListAnimatedStyle = useAnimatedStyle(() => {
+        const relativePosition = bottomSheetPosition.value;
+        const isExpanded = relativePosition < maxOffset; // Determine when to show full content
+        
+        const translateY = interpolate(
+            relativePosition,
+            [0, maxOffset],
+            [0, -maxOffset / 2.5],
+            Extrapolation.CLAMP
+        );
+        const opacity = interpolate(
+            relativePosition,
+            [0, maxOffset],
+            [1, 0],
+        )
+    
+        return {
+            transform: [{ translateY }],
+            opacity: opacity,
+            display: isExpanded ? 'flex' : 'none', // Use display property instead of opacity
+        };
+    });
+    
+
 
     const animatedFABStyle = useAnimatedStyle(() => {
         const availableSpace = windowHeight - bottomSheetPosition.value;
@@ -151,12 +178,12 @@ const HomeScreen = () => {
     const [haveRecordData, setHaveRecordData] = useState(false);
     const [popupMessage, setpopupMessage] = useState('');
     const handleSheetChanges = useCallback((index: number) => {
-        if (haveRecordData === true) {
+        if (markers.length > 0) {
             if (index === 0) {
                 flatListRefList.current?.scrollToIndex({ index: 0, animated: false });
             }
-        }
-    }, [haveRecordData, flatListRefList]); // Make sure flatListRef is stable
+        };
+    }, [markers, flatListRefList]); // Make sure flatListRef is stable
 
 
     //Animation
@@ -333,7 +360,7 @@ const HomeScreen = () => {
                 },
                 title: record.text,
                 address: record.address || '-',
-                image: constructImageURL(record.image, record.id),
+                image: record.image,
                 like: record.likeCount,
                 hasLiked: record.expand?.likes_via_post_id?.some((like) => like.user_id === userData?.id) || false,
                 dislike: record.dislikeCount,
@@ -459,8 +486,6 @@ const HomeScreen = () => {
     useEffect(() => {
         const subscribeToPosts = () => {
             pb.collection('posts').subscribe('*', (event) => {
-                // console.log(event.action);  // You can check the action type: 'create', 'update', or 'delete'
-                // console.log(event.record);  // This is the record that was changed
                 updateMarkersState(event.record);
             }, { /* other options */ });
         };
@@ -616,6 +641,20 @@ const HomeScreen = () => {
                         data={markers}
                         showsVerticalScrollIndicator={false}
                         scrollEnabled={haveRecordData}
+                        contentContainerStyle={{ flexGrow: 1 }}
+                        ListEmptyComponent={() => (
+                            <Animated.View style={[emptyListAnimatedStyle, styles.emptyListContainer]}>
+                                <Text style={{ fontSize: 20, marginBottom: 10 }}>{t('haventPosted')}</Text>
+                                <Button
+                                    buttonColor='#f0f9fc'
+                                    textColor='#8ac5db'
+                                    mode="contained"
+                                    onPress={() => navigation.navigate('CreateNew' as never)} // Adjust navigation as necessary
+                                >
+                                    {t('startYourFirstPost')}
+                                </Button>
+                            </Animated.View>
+                        )}
                         ListHeaderComponent={
                             <Animated.View style={headerAnimatedStyle}>
                                 {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
@@ -639,8 +678,6 @@ const HomeScreen = () => {
                                 isLastItem={markers.indexOf(item) === markers.length - 1}
                                 showDetail={() => showDetailHandler(item)}
                             />
-
-
                         )}
                     />
                     {/* )} */}
@@ -656,7 +693,7 @@ const HomeScreen = () => {
                             scrollEnabled={haveRecordData}
                             ListHeaderComponent={
                                 <Animated.View style={headerAnimatedStyle}>
-                                    <Text style={{ fontSize: 20 }}>{t('comment')}</Text> 
+                                    <Text style={{ fontSize: 20 }}>{t('comment')}</Text>
                                 </Animated.View>
                             }
                             renderItem={({ item }) => (
@@ -726,6 +763,11 @@ const styles = StyleSheet.create({
     fullSize: {
         width: '100%',
         height: '100%'
+    },
+    emptyListContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     }
 });
 

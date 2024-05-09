@@ -74,7 +74,7 @@ export default function App() {
           visible={snackBarVisible}
           onDismiss={onDismissSnackBar}
           duration={1000000000000000}
-          wrapperStyle={{ bottom: 20 }}
+          wrapperStyle={{ bottom: 76 }}
           action={{
             label: t('close'),
             labelStyle: { color: '#b5e1eb' },

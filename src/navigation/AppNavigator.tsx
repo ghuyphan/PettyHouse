@@ -6,6 +6,7 @@ import RequestPasswordScreen from "../screens/RequestPasswordScreen";
 import BottomNav from "./bottomNav/bottomNav";
 import EditProfileScreen from "../screens/SettingSubScreens/EditProfile";
 import CreateNewScreen from "../screens/CreateNewScreen";
+import AvatarScreen from '../screens/ProfileSubScreens/avatarScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,7 @@ function AppNavigator({ initialRouteName }: { initialRouteName: string }) {
             <Stack.Screen name="RequestPassword" component={RequestPasswordScreen}  options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }} />
             <Stack.Screen name="BottomNav" component={BottomNav} options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}/>
+            <Stack.Screen name="Avatar" component={AvatarScreen} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }}/>
             <Stack.Screen 
               name="CreateNew" 
               component={CreateNewScreen} 

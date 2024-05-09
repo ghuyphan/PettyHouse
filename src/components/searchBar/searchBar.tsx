@@ -109,6 +109,7 @@ const SearchbarComponent: React.FC<SearchbarComponentProps> = ({
                     style={{ position: 'absolute', top: searchbarTop, left: 20, right: 20 }}
                     selectionColor={'#000'}
                     elevation={3}
+                    onPressIn={() => bottomSheetRef.current?.snapToIndex(1)}
                 />
             </Animated.View>
                 <Animated.View style={additionalContentStyle}>

@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     },
     topContainer: {
         height: 280,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 20,
         backgroundColor: '#b5e1eb',
         alignItems: 'flex-end',
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     },
     languageButton: {
         flexDirection: 'row',
-        paddingHorizontal: 15,
+        paddingHorizontal: 20,
         paddingVertical: 10,
         backgroundColor: '#f0f9fc',
         alignItems: 'center',
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     },
     bottomContainer: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 20,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
