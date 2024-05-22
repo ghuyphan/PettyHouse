@@ -12,7 +12,9 @@ interface MapMarker {
     };
     address: string;
     title: string;
-    image: string;
+    image1: string;
+    image2?: string;
+    image3?: string;
     like: number;
     dislike: number;
     username: string;
@@ -48,7 +50,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = memo(({ marker, index, bottomS
                     style={styles.markerIcon}
                 />
                 <Image
-                    source={{ uri: marker.image }}
+                    source={{ uri: marker.image1 }}
                     style={styles.markerImage}
                 />
             </View>

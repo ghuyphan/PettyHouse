@@ -1,20 +1,25 @@
 import React, { FC, useMemo, useState, useCallback } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { Image } from 'expo-image';
-import { Avatar, Button, Menu, IconButton, Snackbar } from 'react-native-paper';
+import { Avatar, Button, Menu, IconButton } from 'react-native-paper';
 import moment from 'moment';
 import { useTranslation } from 'react-i18next';
 import TextDialogCheckBox from '../modal/textDialogCheckBox';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { ScrollView } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 
 interface BottomSheetItemProps {
     item: {
         created: string;
         avatar?: string;
         username: string;
+        userId: string;
         address: string;
         title: string;
-        image: string;
+        image1: string;
+        image2?: string;
+        image3?: string;
         hasLiked: boolean;
         like: number;
     };
@@ -24,21 +29,26 @@ interface BottomSheetItemProps {
     isLastItem: boolean;
 }
 
-const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastItem, toggleReport, showDetail }) => {
+const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike, isLastItem, toggleReport, showDetail }) => {
     const { t } = useTranslation();
     const createdDate = useMemo(() => moment(item.created), [item.created]);
     const currentDate = useMemo(() => moment(), []);
+    const navigation = useNavigation();
 
     const [menuVisible, setMenuVisible] = useState(false);
-    const openMenu = () => setMenuVisible(true);
-    const closeMenu = () => setMenuVisible(false);
+    const openMenu = useCallback(() => setMenuVisible(true), []);
+    const closeMenu = useCallback(() => setMenuVisible(false), []);
     const [isVisible, setIsVisible] = useState(false);
+    const [isReported, setIsReported] = useState(false);
 
     const timeAgoText = useMemo(() => {
         const timeDiffMinutes = currentDate.diff(createdDate, 'minutes');
         const timeDiffHours = Math.floor(timeDiffMinutes / 60);
-        if (timeDiffMinutes < 60) {
-            return t('lessThanOneHourAgo');
+        const timeDiffSeconds = currentDate.diff(createdDate, 'seconds');
+        if (timeDiffSeconds < 60) {
+            return t('justNow');
+        } else if (timeDiffMinutes < 60) {
+            return `${timeDiffMinutes} ${t('minutesAgo')}`;
         } else if (timeDiffHours < 24) {
             return `${timeDiffHours} ${t('hoursAgo')}`;
         } else {
@@ -64,77 +74,122 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
             scale.value = 1;
         }, 100);
     }, [toggleLike, scale]);
-    
+
     const animatedStyle = useAnimatedStyle(() => {
         return {
             transform: [{ scale: withSpring(scale.value, { damping: 3, stiffness: 150 }) }],
         };
     }, []);
+
     const handleReport = useCallback((reason: string) => {
         toggleReport(reason);
+        setIsReported(true);
         setIsVisible(false);
     }, [toggleReport]);
 
+    const handleImagePress = useCallback((index: number) => {
+        const images = [item.image1, item.image2, item.image3].filter(img => img);
+        navigation.navigate('ImageViewer', { images, initialIndex: index });
+    }, [item.image1, item.image2, item.image3, navigation]);
+
+    const renderImages = useCallback(() => {
+        const images = [item.image1, item.image2, item.image3].filter(img => img);
+        if (images.length > 1) {
+            return (
+                <ScrollView nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 5, paddingLeft: 35 }} overScrollMode={'never'}>
+                    {images.map((img, index) => (
+                        <TouchableOpacity key={index} onPress={() => handleImagePress(index)}>
+                            <Image source={{ uri: img }} style={styles.image} />
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            );
+        } else {
+            return (
+                <View style={{ marginLeft: 35 }}>
+                    <TouchableOpacity onPress={() => handleImagePress(0)}>
+                        <Image source={{ uri: item.image1 }} style={styles.image} />
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+    }, [item.image1, item.image2, item.image3, handleImagePress]);
+
     return (
         <View style={styles.card}>
-            <View style={styles.topContainer}>
-                <View style={styles.userSection}>
-                    {item.avatar ? (
-                        <Avatar.Image source={{ uri: item.avatar }} size={35} style={styles.avatar} />
-                    ) : (
-                        <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={35} style={styles.avatar} color="#fff" />
-                    )}
-                    <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{item.username}</Text>
-                        <Text style={styles.address}>{item.address}</Text>
+            {isReported ? (
+                <View style={styles.reportContainer}>
+                    <Text style={styles.reportMessage}>{t('reportedPost')}</Text>
+                </View>
+            ) : (
+                <>
+                    <View style={styles.topContainer}>
+                        <View style={styles.userSection}>
+                            {item.avatar ? (
+                                <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}>
+                                    <Avatar.Image source={{ uri: item.avatar }} size={30} style={styles.avatar} />
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}>
+                                    <Avatar.Text label={item.username.slice(0, 2).toUpperCase()} size={30} style={styles.avatar} color="#fff" />
+                                </TouchableOpacity>
+                            )}
+                            <View style={styles.userInfo}>
+                                <View style={{ flexDirection: 'row', gap: 5 }}>
+                                    <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}>
+                                        <Text style={styles.userName}>{item.username}</Text>
+                                    </TouchableOpacity>
+                                    <Text style={styles.date}>{timeAgoText}</Text>
+                                </View>
+                                <Text numberOfLines={1} style={styles.address}>{item.address}</Text>
+                            </View>
+                        </View>
+                        <Menu
+                            visible={menuVisible}
+                            onDismiss={closeMenu}
+                            elevation={1}
+                            contentStyle={{ backgroundColor: '#ffff' }}
+                            anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
+                        >
+                            <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('share')} />
+                            <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => (
+                                <>
+                                    {setIsVisible(true)}
+                                    {closeMenu()}
+                                </>
+                            )} title={t('report')} />
+                        </Menu>
                     </View>
-
-                </View>
-                <Menu
-                    visible={menuVisible}
-                    onDismiss={closeMenu}
-                    elevation={1}
-                    contentStyle={{ backgroundColor: '#ffff' }}
-                    anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
-                >
-                    {/* <Menu.Item leadingIcon={'pencil-outline'} onPress={() => { }} title={t('edit')} /> */}
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share'} titleStyle={{ color: '#8ac5db' }} onPress={() => {}} title={t('share')} />
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => (
-                        <>
-                            {setIsVisible(true)}
-                            {closeMenu()}
-                        </>
-                    )} title={t('report')} />
-                </Menu>
-            </View>
-            <Text style={styles.title}>
-                {item.title}
-            </Text>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            {item.like > 0 && <Text style={styles.like}>{item.like} {t('likes')}</Text>}
-            <View style={styles.actionSection}>
-                <View style={styles.likeDislikeButtons}>
-                <Animated.View style={animatedStyle}>
-                        <IconButton
-                            style={styles.moreButton}
-                            size={22}
-                            iconColor={item.hasLiked ? '#FF5733' : '#8ac5db'}
-                            onPress={handleToggleLike}
-                            icon={item.hasLiked ? 'heart' : 'heart-outline'}
-                        />
-                    </Animated.View>
-                    <IconButton
-                        style={styles.moreButton}
-                        size={22}
-                        iconColor={'#8ac5db'}
-                        onPress={() => showDetail()}
-                        icon={'comment-outline'}
-                    >
-                    </IconButton>
-                </View>
-                <Text style={styles.timeAgo}>{timeAgoText}</Text>
-            </View>
-            {!isLastItem && <View style={styles.divider} />}
+                    <TouchableWithoutFeedback onPress={() => showDetail()}>
+                        <View style={styles.contentContainer}>
+                            <Text style={styles.title}>{item.title}</Text>
+                            {renderImages()}
+                            <View style={styles.actionSection}>
+                                <View style={styles.likeDislikeButtons}>
+                                    <Animated.View style={animatedStyle}>
+                                        <Button
+                                            style={styles.likeButton}
+                                            labelStyle={{ color: item.hasLiked ? '#FF5733' : '#8ac5db', fontSize: 20 }}
+                                            onPress={handleToggleLike}
+                                            icon={item.hasLiked ? 'heart' : 'heart-outline'}
+                                        >
+                                            <Text style={{ color: item.hasLiked ? '#FF5733' : '#8ac5db', fontSize: 14 }}>{item.like}</Text>
+                                        </Button>
+                                    </Animated.View>
+                                    <IconButton
+                                        style={styles.moreButton}
+                                        size={22}
+                                        iconColor={'#8ac5db'}
+                                        onPress={() => showDetail()}
+                                        icon={'comment-outline'}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </TouchableWithoutFeedback>
+                    {!isLastItem && <View style={styles.divider} />}
+                </>
+            )}
             <TextDialogCheckBox
                 confirmLabel={t('report')}
                 dismissLabel={t('cancelButton')}
@@ -144,10 +199,9 @@ const BottomSheetItem: FC<BottomSheetItemProps> = ({ item, toggleLike, isLastIte
                 onConfirm={(reason) => handleReport(reason)}
                 title={t('reportTitle')}
             />
-
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     card: {
@@ -160,13 +214,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 15,
+        marginBottom: 10,
     },
     avatar: {},
     userName: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#8ac5db',
+    },
+    date: {
+        fontSize: 14,
+        color: '#999',
     },
     userSection: {
         flexDirection: 'row',
@@ -178,41 +236,45 @@ const styles = StyleSheet.create({
         gap: 5
     },
     address: {
-        color: '#888',
         fontSize: 12,
-        width: '100%'
+        color: '#999',
+    },
+    contentContainer: {
+        flexDirection: 'column',
     },
     title: {
         fontSize: 14,
-        color: '#555',
         width: '100%',
-        marginBottom: 10
+        marginBottom: 10,
+        marginLeft: 35,
     },
     image: {
         flex: 1,
-        borderRadius: 15,  // Maintain rounded corners if desired
-        aspectRatio: 1 // Your aspect ratio
-        // aspectRatio: 1
+        borderRadius: 15,
+        aspectRatio: 1
     },
     actionSection: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        // marginTop: 10,
         marginBottom: 10,
-    },
-    timeAgo: {
-        color: '#8ac5db',
-        fontSize: 14
+        marginLeft: 25,
     },
     likeDislikeButtons: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5
     },
-    iconLabel: {
-        fontSize: 20,
-        color: '#8ac5db'
+    likeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+        color: '#8ac5db',
+        backgroundColor: 'transparent'
+    },
+    likeCount: {
+        fontSize: 14,
+        color: '#8ac5db',
     },
     divider: {
         backgroundColor: '#f0f9fc',
@@ -223,15 +285,19 @@ const styles = StyleSheet.create({
     },
     moreButton: {
         color: '#8ac5db',
-        backgroundColor: 'transparent'
+        backgroundColor: 'transparent',
+        marginRight: -20
     },
-    like: {
+    reportContainer: {
+        backgroundColor: '#f0f9fc',
+        borderRadius: 15,
+        marginBottom: 20,
+    },
+    reportMessage: {
+        fontSize: 16,
         color: '#8ac5db',
-        fontSize: 14,
-        alignItems: 'center',
-        // marginBottom: 20,
-        marginTop: 15,
-        marginLeft: 10
+        textAlign: 'center',
+        marginVertical: 20,
     },
 });
 

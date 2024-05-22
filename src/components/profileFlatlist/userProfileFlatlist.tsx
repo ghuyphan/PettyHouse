@@ -3,11 +3,11 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Modal } fr
 import { Avatar, Button, Menu, IconButton, Snackbar, Icon } from 'react-native-paper';
 import moment from 'moment';
 import { useTranslation } from 'react-i18next';
-import TextDialogCheckBox from '../modal/textDialogCheckBox';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
 import pb from '../../services/pocketBase';
 import TextDialog2Btn from '../modal/textDialog2Btn';
-import { useNavigation } from '@react-navigation/native';
+
 
 interface ProfileFlatlistProps {
     item: {
@@ -30,13 +30,14 @@ interface ProfileFlatlistProps {
     fetchUserPosts: () => void;
 }
 
-const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastItem, showDetail, fetchUserPosts }) => {
+const UserProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastItem, showDetail, fetchUserPosts }) => {
     const { t } = useTranslation();
     const createdDate = useMemo(() => moment(item.created), [item.created]);
     const currentDate = useMemo(() => moment(), []);
 
-    const [menuVisible, setMenuVisible] = useState(false);
     const navigation = useNavigation();
+
+    const [menuVisible, setMenuVisible] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
 
     const openMenu = useCallback(() => setMenuVisible(true), []);
@@ -45,7 +46,6 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
         const images = [item.image1, item.image2, item.image3].filter(img => img);
         navigation.navigate('ImageViewer', { images, initialIndex: index });
     }, [item.image1, item.image2, item.image3, navigation]);
-
 
     const timeAgoText = useMemo(() => {
         const timeDiffMinutes = currentDate.diff(createdDate, 'minutes');
@@ -144,7 +144,6 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                     <View style={styles.userInfo}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                             <Text style={styles.userName}>{item.username}</Text>
-                            {item.visible ? <Icon source="eye-outline" size={15} color="#999" /> : <Icon source="eye-off-outline" size={15} color="#999" />}
                             <Text style={styles.date}>{timeAgoText}</Text>
                         </View>
                         <Text style={styles.address}>{item.address}</Text>
@@ -157,13 +156,7 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                     elevation={1}
                     anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
                 >
-                    {!item.visible ?
-                        <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { setIsVisible(true); setMenuVisible(false) }} title={t('show')} />
-                        :
-                        <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-off-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { setIsVisible(true); setMenuVisible(false) }} title={t('hide')} />}
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'pencil-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('edit')} />
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('share')} />
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'delete-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => { }} title={t('delete')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('share')} />
                 </Menu>
             </View>
             <Text style={styles.title}>
@@ -329,4 +322,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ProfileFlatlist;
+export default UserProfileFlatlist;

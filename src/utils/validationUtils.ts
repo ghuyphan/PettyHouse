@@ -60,5 +60,18 @@ const validateConfirmPassword = (confirmPassword: string, password: string, t: a
     }
 }
 
+const validateFullName = (fullName: string, t: any): string | null => {
+    const fullNameSchema = yup.string()
+        .required(t('fullNameRequired'))
+        .min(3, t('fullNameMinLength'))
+        .max(50, t('fullNameMaxLength'));
 
-export { validateUsername, validateEmail, validatePassword, validateConfirmPassword };
+    try {
+        fullNameSchema.validateSync(fullName);
+        return null; // Passes validation, no error
+    } catch (err: any) {
+        return err.message; // Return the error message
+    }
+}
+
+export { validateUsername, validateEmail, validatePassword, validateConfirmPassword, validateFullName };

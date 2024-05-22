@@ -117,16 +117,16 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                             <View style={styles.userInfo}>
                                 {/* <Text style={styles.name}>{userData?.name}</Text> */}
                                 <Text style={styles.userName}>{userData?.username}</Text>
-                                {userData?.verified ?   
+                                {userData?.verified ?
                                     <View style={styles.verifiedContainer}>
-                                    <Icon source="check-circle" color={'#fff'} size={15} />
-                                    <Text style={styles.verifiedText}>{t('verifiedUser')}</Text>
-                                </View> 
-                                : 
-                                <View style={styles.unVerifiedContainer}>
-                                    <Icon source="close-circle" color={'#fff'} size={15} />
-                                    <Text style={styles.verifiedText}>{t('unverifiedUser')}</Text>
-                                </View>}
+                                        <Icon source="check-circle" color={'#fff'} size={15} />
+                                        <Text style={styles.verifiedText}>{t('verifiedUser')}</Text>
+                                    </View>
+                                    :
+                                    <View style={styles.unVerifiedContainer}>
+                                        <Icon source="close-circle" color={'#fff'} size={15} />
+                                        <Text style={styles.verifiedText}>{t('unverifiedUser')}</Text>
+                                    </View>}
 
                             </View>
                         </View>
@@ -202,7 +202,12 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                             <List.Item
                                 title={t('languageSwitch')}
                                 left={() => <List.Icon color={colors.primary} icon="translate" />}
-                                right={() => <Switch value={isLanguageEnglish} onValueChange={toggleLanguage} />}
+                                right={() =>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Text style={{ color: colors.primary, marginRight: 10, fontWeight: 'bold' }}>{isLanguageEnglish ? 'Tiếng Việt' : 'English'}</Text>
+                                        <Switch value={isLanguageEnglish} onValueChange={toggleLanguage} />
+                                    </View>
+                                }
                             />
                         </View>
                     </List.Section>
@@ -253,13 +258,13 @@ const styles = StyleSheet.create({
     },
     headerSmall: {
         // marginTop: 60,
-        paddingTop: 60,
+        paddingTop: 50,
         paddingHorizontal: 20,
         paddingBottom: 10,
         justifyContent: 'center',
         backgroundColor: '#f0f9fc',
         position: 'absolute',
-        height: 100,
+        // height: 100,
         top: 0,
         left: 0,
         right: 0,
@@ -298,22 +303,22 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     verifiedContainer: {
-        flexDirection: 'row', 
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center', 
-        paddingVertical: 5, 
-        paddingHorizontal: 10, 
-        backgroundColor: '#77DD77', 
+        justifyContent: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        backgroundColor: '#77DD77',
         borderRadius: 50,
         gap: 5
     },
     unVerifiedContainer: {
-        flexDirection: 'row', 
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center', 
-        paddingVertical: 5, 
-        paddingHorizontal: 10, 
-        backgroundColor: '#FF5733', 
+        justifyContent: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        backgroundColor: '#FF5733',
         borderRadius: 50,
         gap: 5
     },

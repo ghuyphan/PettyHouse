@@ -1,13 +1,16 @@
 
 interface TypeMarker {
     id: string;
+    userId: string;
     coordinate: {
         latitude: number;
         longitude: number;
     };
     title: string;
     address: string;
-    image: string;
+    image1: string;
+    image2: string;
+    image3: string;
     like: number;
     hasLiked: boolean;
     dislike: number;

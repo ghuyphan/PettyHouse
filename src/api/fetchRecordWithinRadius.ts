@@ -4,29 +4,35 @@ import pb from '../services/pocketBase';
 export async function fetchRecordsWithinRadius(centerLat: number, centerLon: number, radius: number) {
     try {
         const boundingBox = calculateBoundingBox(centerLat, centerLon, radius);
-        let allRecords = [];
-        let page = 1;
-        let hasMore = true;
+        const userID = pb.authStore.model;
 
-        while (hasMore) {
-            const potentialRecords = await pb.collection('posts').getList(page, 50, {
-                filter: `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon} && visible = true`,
-                expand: 'user,likes_via_post_id',
-            });
-        
-            const filteredRecords = potentialRecords.items.filter(record => {
-                const distance = getDistanceFromLatLonInKm(
-                    { latitude: centerLat, longitude: centerLon },
-                    { latitude: record.latitude, longitude: record.longitude }
-                );
-                return distance <= radius;
-            });
-        
-            allRecords.push(...filteredRecords);
-            hasMore = potentialRecords.items.length == 50; // Check if full page of items was returned
-            page++;
-        }
-        
+        // Fetch reported post IDs by the current user
+        const reportedPosts = new Set();
+        const reports = await pb.collection('reports').getList(1, 50, {
+            filter: `user_id = "${userID?.id}"`,
+        });
+        reports.items.forEach(report => reportedPosts.add(report.post_id));
+
+        // Generate filter query for excluding reported posts
+        const reportedPostsFilter = Array.from(reportedPosts).map(id => `id != "${id}"`).join(' && ');
+        const exclusionFilter = reportedPostsFilter ? ` && (${reportedPostsFilter})` : '';
+
+        // Fetch posts excluding the reported ones
+        const filterQuery = `latitude >= ${boundingBox.minLat} && latitude <= ${boundingBox.maxLat} && longitude >= ${boundingBox.minLon} && longitude <= ${boundingBox.maxLon} && visible = true${exclusionFilter}`;
+        const potentialRecords = await pb.collection('posts').getList(1, 50, {
+            filter: filterQuery,
+            expand: 'user,likes_via_post_id',
+            sort: '-created',
+        });
+
+        const allRecords = potentialRecords.items.filter(record => {
+            const distance = getDistanceFromLatLonInKm(
+                { latitude: centerLat, longitude: centerLon },
+                { latitude: record.latitude, longitude: record.longitude }
+            );
+            return distance <= radius;
+        });
+
         return allRecords;
     } catch (error) {
         throw error;

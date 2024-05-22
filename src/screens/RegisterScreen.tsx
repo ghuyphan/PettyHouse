@@ -7,12 +7,12 @@ import { useTranslation } from 'react-i18next';
 import TextDialog from '../components/modal/textDialog';
 import pb from '../services/pocketBase';
 import BackButton from '../components/button/backButton';
-import { validateEmail, validatePassword, validateConfirmPassword } from '../utils/validationUtils';
-
+import { validateFullName, validateEmail, validatePassword, validateConfirmPassword } from '../utils/validationUtils';
 
 const RegisterScreen = () => {
     const navigation = useNavigation();
     const { t } = useTranslation();
+    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,10 +22,11 @@ const RegisterScreen = () => {
     const [isSuccess, setIsSuccess] = useState(false);
 
     // Input validation
-    const [userNameError, setUserNameError] = useState(false);
+    const [fullNameError, setFullNameError] = useState(false);
     const [emailError, setEmailError] = useState(false);
     const [passwordError, setPasswordError] = useState(false);
     const [confirmPasswordError, setConfirmPasswordError] = useState(false);
+    const [fullNameErrorText, setFullNameErrorText] = useState('');
     const [emailErrorText, setEmailErrorText] = useState('');
     const [passwordErrorText, setPasswordErrorText] = useState('');
     const [confirmPasswordErrorText, setConfirmPasswordErrorText] = useState('');
@@ -40,11 +41,11 @@ const RegisterScreen = () => {
             navigation.navigate('Login' as never);
         }
     };
-    /**
-     * Validates the email and password inputs and sets corresponding error states.
-     *
-     */
+
     const validateInputs = async () => {
+        const fullNameValidation = validateFullName(fullName, t);
+        setFullNameError(!!fullNameValidation);
+        setFullNameErrorText(fullNameValidation || '');
 
         const emailValidation = validateEmail(email, t);
         setEmailError(!!emailValidation);
@@ -58,17 +59,10 @@ const RegisterScreen = () => {
         setConfirmPasswordError(!!confirmPasswordValidation);
         setConfirmPasswordErrorText(confirmPasswordValidation || '');
 
-        // return !userNameValidation && !emailValidation && !passwordValidation && !confirmPasswordValidation;
-        return !emailValidation && !passwordValidation && !confirmPasswordValidation;
+        return !fullNameValidation && !emailValidation && !passwordValidation && !confirmPasswordValidation;
     };
 
-    /**
-     * Handles the login process.
-     *
-     * @return {Promise<void>} - A promise that resolves when the login process is complete.
-     */
     const handleRegister = async () => {
-        // // Validate inputs before submitting
         const isValid = await validateInputs();
         if (!isValid) {
             return;
@@ -77,6 +71,7 @@ const RegisterScreen = () => {
             Keyboard.dismiss();
             setIsLoading(true);
             await pb.collection('users').create({
+                name: fullName,
                 email: email,
                 password: password,
                 passwordConfirm: confirmPassword
@@ -86,7 +81,6 @@ const RegisterScreen = () => {
             setIsSuccess(true);
             setMessage(t('registrationSuccessMessage')); // Adjust as needed
             setIsLoading(false);
-
         } catch (error) {
             const errorData: { status: number; message: string } = error as { status: number; message: string };
             console.log(errorData);
@@ -97,7 +91,6 @@ const RegisterScreen = () => {
         }
     };
 
-    // Toggle password visibility
     const togglePasswordVisibility = (field: 'password' | 'confirmPassword') => {
         setPasswordVisibility({
             ...passwordVisibility,
@@ -128,6 +121,26 @@ const RegisterScreen = () => {
                         <TextInput
                             mode='outlined'
                             style={styles.input}
+                            label={t('fullname')}
+                            left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="account" color="#b5e1eb" />}
+                            right={fullName.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="close" color="#b5e1eb" onPress={() => setFullName('')} />}
+                            value={fullName}
+                            onChangeText={setFullName}
+                            outlineColor='#ccc'
+                            maxLength={40}
+                            onBlur={() => {
+                                if (fullName.length > 0) {
+                                    let error = validateFullName(fullName, t);
+                                    setFullNameError(!!error);
+                                    setFullNameErrorText(error || '');
+                                }
+                            }}
+                            error={fullNameError}
+                        />
+                        <HelperText type="error" visible={fullNameError} style={{ marginTop: -5 }}>{fullNameErrorText}</HelperText>
+                        <TextInput
+                            mode='outlined'
+                            style={styles.input}
                             label={t('email')}
                             left={<TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="email" color="#b5e1eb" />}
                             right={email.length > 0 && <TextInput.Icon style={{ backgroundColor: 'transparent' }} icon="close" color="#b5e1eb" onPress={() => setEmail('')} />}
@@ -143,7 +156,6 @@ const RegisterScreen = () => {
                                 }
                             }}
                             error={emailError}
-
                         />
                         <HelperText type="error" visible={emailError} style={{ marginTop: -5 }}>{emailErrorText}</HelperText>
                         <TextInput
@@ -183,7 +195,7 @@ const RegisterScreen = () => {
                                     let error = validateConfirmPassword(confirmPassword, password, t);
                                     setConfirmPasswordError(!!error);
                                     setConfirmPasswordErrorText(error || '');
-                                }   
+                                }
                             }}
                             error={confirmPasswordError}
                         />
@@ -195,7 +207,6 @@ const RegisterScreen = () => {
                         onPress={handleRegister}
                         style={{ marginTop: 20, marginBottom: 50 }}
                         labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-
                         disabled={isLoading}
                         loading={isLoading}
                     >
@@ -273,8 +284,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 20,
         backgroundColor: '#f0f9fc',
     },
-    inputContainer: {
-    },
+    inputContainer: {},
     input: {
         width: '100%',
         backgroundColor: '#fff',

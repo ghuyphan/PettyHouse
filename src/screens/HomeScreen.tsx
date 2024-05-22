@@ -30,7 +30,7 @@ import * as Location from 'expo-location';
 import SearchbarComponent from '../components/searchBar/searchBar';
 import BottomSheetItem from '../components/bottomSheet/bottomSheetItem';
 import PopupDialog from '../components/modal/popupDialog';
-import DetailBottomSheet from '../components/bottomSheet/detailBottomSheet';
+import DetailFlatList from '../components/bottomSheet/detailBottomSheet';
 import { savePost, clearPost } from '../reducers/postSlice';
 
 //API import
@@ -116,13 +116,13 @@ const HomeScreen = () => {
         );
         const opacity = interpolate(
             relativePosition,
-            [0, maxOffset],
+            [maxOffset/1.5, maxOffset],
             [1, 0],
         )
     
         return {
             transform: [{ translateY }],
-            opacity: opacity,
+            opacity: isExpanded ? opacity : 1,
             display: isExpanded ? 'flex' : 'none', // Use display property instead of opacity
         };
     });
@@ -165,7 +165,6 @@ const HomeScreen = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             marginBottom,
-            paddingHorizontal: 20,
             height,
         };
     });
@@ -180,11 +179,11 @@ const HomeScreen = () => {
     const handleSheetChanges = useCallback((index: number) => {
         if (markers.length > 0) {
             if (index === 0) {
+                showList();
                 flatListRefList.current?.scrollToIndex({ index: 0, animated: false });
             }
         };
     }, [markers, flatListRefList]); // Make sure flatListRef is stable
-
 
     //Animation
     const openPopupDialog = useCallback(() => {
@@ -354,15 +353,18 @@ const HomeScreen = () => {
             const records = await fetchRecordsWithinRadius(location.coords.latitude, location.coords.longitude, currentRadius);
             const newMarkers = records.map(record => ({
                 id: record.id,
+                userId: record.user,
                 coordinate: {
                     latitude: record.latitude,
                     longitude: record.longitude
                 },
                 title: record.text,
                 address: record.address || '-',
-                image: record.image,
+                image1: record.image1,
+                image2: record.image2,
+                image3: record.image3,
                 like: record.likeCount,
-                hasLiked: record.expand?.likes_via_post_id?.some((like) => like.user_id === userData?.id) || false,
+                hasLiked: record.expand?.likes_via_post_id?.some((like: any) => like.user_id === userData?.id) || false,
                 dislike: record.dislikeCount,
                 username: record.expand?.user.username,
                 avatar: record.expand?.user.avatar,
@@ -524,9 +526,9 @@ const HomeScreen = () => {
             }
             setIsLoadingRegion(false);
         }
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            return true;
-        });
+        // const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        //     return true;
+        // });
         fetchLastLocation();
         subscribeToPosts();
         // return () => backHandler.remove();
@@ -562,7 +564,7 @@ const HomeScreen = () => {
                         <Circle
                             center={circleProps.center}
                             radius={circleProps.radius}
-                            strokeColor="#8ac5db"  // Your app's primary color 
+                            strokeColor="#8ac5db"  // Your app`'s primary color 
                             fillColor="rgba(138, 197, 219, 0.2)"
                         />
                     )}
@@ -632,6 +634,8 @@ const HomeScreen = () => {
                 animatedPosition={bottomSheetPosition}
                 handleIndicatorStyle={{ backgroundColor: '#ccc' }}
                 onChange={handleSheetChanges}
+                keyboardBehavior='extend'
+                keyboardBlurBehavior='restore'
             >
                 {/* List Bottom Sheet to display all the posts*/}
                 <Animated.View style={[styles.fullSize, listStyle]}>
@@ -640,11 +644,13 @@ const HomeScreen = () => {
                         ref={flatListRefList}
                         data={markers}
                         showsVerticalScrollIndicator={false}
+                        keyExtractor={item => item.id}
                         scrollEnabled={haveRecordData}
                         contentContainerStyle={{ flexGrow: 1 }}
+                        disableScrollViewPanResponder
                         ListEmptyComponent={() => (
                             <Animated.View style={[emptyListAnimatedStyle, styles.emptyListContainer]}>
-                                <Text style={{ fontSize: 20, marginBottom: 10 }}>{t('haventPosted')}</Text>
+                                <Text style={{ fontSize: 18, marginBottom: 10 }}>{t('noPost')}</Text>
                                 <Button
                                     buttonColor='#f0f9fc'
                                     textColor='#8ac5db'
@@ -656,7 +662,7 @@ const HomeScreen = () => {
                             </Animated.View>
                         )}
                         ListHeaderComponent={
-                            <Animated.View style={headerAnimatedStyle}>
+                            <Animated.View style={[headerAnimatedStyle, styles.header]}>
                                 {haveRecordData ? <Text style={{ fontSize: 20 }}>{t('lastestInYourArea')}</Text> :
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                                         <Text style={{ fontSize: 20 }}>{t('tapBottomSheetHeader')}</Text>
@@ -685,33 +691,17 @@ const HomeScreen = () => {
 
                 {/* Detail Bottom Sheet */}
                 <Animated.View style={[styles.fullSize, detailStyle, { position: 'absolute', top: 0, left: 0, right: 0 }]}>
-                    {activeView === 'detail' && (
-                        <BottomSheetFlatList
-                            ref={flatListRefDetail}
-                            data={markers}
-                            showsVerticalScrollIndicator={false}
-                            scrollEnabled={haveRecordData}
-                            ListHeaderComponent={
-                                <Animated.View style={headerAnimatedStyle}>
-                                    <Text style={{ fontSize: 20 }}>{t('comment')}</Text>
-                                </Animated.View>
-                            }
-                            renderItem={({ item }) => (
-                                <DetailBottomSheet
-                                    item={item}
-                                    toggleLike={() => debouncedToggleLike(item.id)}
-                                    toggleReport={(reason: string) => toggleReport(item.id, reason)}
-                                    isLastItem={markers.indexOf(item) === markers.length - 1}
-                                    showDetail={() => showDetail()}
-                                />
-                            )}
-                        />
-                    )}
+                    {/* {activeView === 'detail' && ( */}
+                        <DetailFlatList 
+                            debouncedToggleLike={debouncedToggleLike}
+                            headerAnimatedStyle={headerAnimatedStyle}
+                            />
+                    {/* )}  */}
                 </Animated.View>
 
             </BottomSheet>
             <Snackbar
-                wrapperStyle={{ bottom: 0 }}
+                wrapperStyle={{ bottom: -30 }}
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
                 action={{
@@ -745,6 +735,9 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1
+    },
+    header: {
+      paddingHorizontal: 20,  
     },
     loadingContainer: {
         position: 'absolute',

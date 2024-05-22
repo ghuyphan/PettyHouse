@@ -1,46 +1,52 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, withSpring } from 'react-native-reanimated';
-import { Button, useTheme, Avatar, Text, Icon, Snackbar } from 'react-native-paper';
+import { Button, useTheme, Avatar, Text, Icon, Snackbar, IconButton } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import * as SecureStore from 'expo-secure-store';
 import { useDispatch } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
-import pb from '../services/pocketBase';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import pb from '../../services/pocketBase';
 import { debounce } from 'lodash';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store/rootReducer';
-import TypeMarker from '../types/markers';
-import ProfileSkeletonLoading from '../components/skeletonLoading/profileSkeletonLoading';
-
-//Import components
-import ProfileFlatlist from '../components/profileFlatlist/profileFlatlist';
+import TypeMarker from '../../types/markers';
+import ProfileSkeletonLoading from '../../components/skeletonLoading/profileSkeletonLoading';
+import UserProfileFlatlist from '../../components/profileFlatlist/userProfileFlatlist';
 
 interface SettingsProps { }
 
-const ProfileScreen: React.FC<SettingsProps> = () => {
+const UserProfileScreen: React.FC<SettingsProps> = () => {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
-
-
     const dispatch = useDispatch();
     const navigation = useNavigation();
+    const route = useRoute();
+    const { userId } = route.params;
+    console.log(userId);
+
     const [isLoading, setIsLoading] = useState(true);
     const [isReloading, setIsReloading] = useState(false);
     const [imageUri, setImageUri] = useState<null>(null);
     const bottomSheetRef = useRef<BottomSheet>(null);
-    const userData = useSelector((state: RootState) => state.user.userData);
     const [posts, setPosts] = useState<TypeMarker[]>([]);
+    const [userData, setUserData] = useState<any>(null);
+
+    const fetchUserData = async (id: string) => {
+        try {
+            const user = await pb.collection('users').getOne(id);
+            setUserData(user);
+        } catch (error) {
+            console.error('Failed to fetch user data:', error);
+        }
+    };
 
     const fetchUserPosts = async () => {
-        if (!userData) return;
         setIsReloading(true);
         try {
             const records = await pb.collection('posts').getFullList({
-                filter: `user = "${userData?.id}"`,
+                filter: `user = "${userId}"`,
                 expand: 'user,likes_via_post_id',
                 sort: '-created',
             });
@@ -56,7 +62,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                 image2: record.image2,
                 image3: record.image3,
                 like: record.likeCount,
-                hasLiked: record.expand?.likes_via_post_id?.some((like: any) => like.user_id === userData?.id) || false,
+                hasLiked: record.expand?.likes_via_post_id?.some((like: any) => like.user_id === userId) || false,
                 dislike: record.dislikeCount,
                 username: record.expand?.user.username,
                 avatar: record.expand?.user.avatar,
@@ -71,11 +77,12 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
         }
         setIsLoading(false);
         setIsReloading(false);
-    }
+    };
 
     useEffect(() => {
+        fetchUserData(userId);
         fetchUserPosts();
-    }, []);
+    }, [userId]);
 
     const scrollY = useSharedValue(0);
     const headerSmallStyle = useAnimatedStyle(() => {
@@ -120,7 +127,6 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
         }
     };
 
-
     const debouncedToggleLike = useRef(debounce(toggleLike, 200)).current;
     const snapPoints = useMemo(() => ['20%', '20%'], []);
     const renderContent = () => (
@@ -134,13 +140,11 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
         </View>
     );
 
-
     return (
         <View style={styles.container}>
             {isLoading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ProfileSkeletonLoading isLoading={isLoading} />
-
                 </View>
             ) : (
                 <Animated.FlatList
@@ -188,10 +192,6 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                                     </View>
                                 </TouchableOpacity>
                             </View>
-                            <View style={styles.infoContainer}>
-                                <Button buttonColor='#f0f9fc' textColor='#8ac5db' style={{ flex: 1 }} mode='contained'>Edit Profile</Button>
-                                <Button buttonColor='#f0f9fc' textColor='#8ac5db' style={{ flex: 1 }} mode='contained'>Share Profile</Button>
-                            </View>
                             <View style={styles.divider} />
                         </View>
                     )}
@@ -199,7 +199,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                     renderItem={({ item }) => (
                         <View style={{ flex: 1 }} >
 
-                            <ProfileFlatlist
+                            <UserProfileFlatlist
                                 item={item}
                                 isLastItem={posts.indexOf(item) === posts.length - 1}
                                 toggleLike={() => debouncedToggleLike(item.id)}
@@ -241,6 +241,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                     <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={35} color="#fff" />
                 )}
             </Animated.View>
+            <IconButton style={styles.backButton} icon="arrow-left" size={25} onPress={() => navigation.goBack()} />
         </View >
     );
 };
@@ -253,25 +254,34 @@ const styles = StyleSheet.create({
     headerSmall: {
         // marginTop: 60,
         flexDirection: 'row',
-        paddingTop: 60,
+        paddingTop: 50,
         paddingHorizontal: 20,
         paddingBottom: 10,
         gap: 10,
         alignItems: 'center',
-        justifyContent: 'space-between',
         backgroundColor: '#f0f9fc',
+        justifyContent: 'space-between',
         position: 'absolute',
+        // height: 100,
         top: 0,
         left: 0,
         right: 0,
     },
     headerSmallText: {
         fontSize: 20,
+        marginLeft: 50,
+    },
+    backButton: {
+        position: 'absolute',
+        top: 0,
+        left: 10,
+        marginTop: 45,
+        backgroundColor: 'transparent',
     },
     scrollView: {
         flex: 1,
         marginTop: 60,
-        backgroundColor: '#fff', // Match the background color
+        backgroundColor: '#fff',
     },
     contentContainer: {
         flex: 1,
@@ -287,7 +297,6 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         justifyContent: 'space-between',
         borderRadius: 20,
-        // gap: 10,
     },
     cameraIcon: {
         position: 'absolute',
@@ -296,7 +305,6 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         bottom: 0,
         right: -5,
-
     },
     userInfo: {
         flexDirection: 'column',
@@ -336,4 +344,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ProfileScreen;
+export default UserProfileScreen;

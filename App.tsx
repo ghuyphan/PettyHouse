@@ -16,6 +16,7 @@ import pb from './src/services/pocketBase'; // Your PocketBase setup
 import { checkInitialAuth } from './src/utils/authUtils';
 import useNetworkStatus from './src/hooks/useNetworkStatus';
 import { useTranslation } from 'react-i18next';
+
 SplashScreen.preventAutoHideAsync().catch(/* ... */);
 
 // Your theme definition
@@ -43,7 +44,7 @@ export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const { snackBarVisible, onDismissSnackBar, dismissSnackBar } = useNetworkStatus();
   const { t } = useTranslation();
-
+  
   useEffect(() => {
     const init = async () => {
       await checkInitialAuth();

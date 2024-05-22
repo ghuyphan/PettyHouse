@@ -15,7 +15,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "fureverHome2"
     },
     "android": {
       "adaptiveIcon": {
@@ -41,7 +42,6 @@
           "cameraPermission": "The app accesses your camera to take pictures."
         }
       ]
-
     ],
     "extra": {
       "eas": {
