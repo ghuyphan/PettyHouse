@@ -24,7 +24,13 @@ const CommentSkeletonLoading: FC<CommentSkeletonLoadingProps> = ({ isLoading }) 
                 },
                 { key: 'title1', width: '80%', height: 14, marginBottom: 10 },
                 { key: 'title1', width: '90%', height: 14, marginBottom: 10 },
-                // { key: 'image1', width: '100%', height: 200, borderRadius: 15 },
+                {
+                    key: 'topRow1', children: [
+                        { key: 'image1', width: '70%', height: 250, borderRadius: 15 },
+                        { key: 'image1', width: '50%', height: 250, borderRadius: 15 },
+                    ], flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10
+                },
+                
                 { key: 'divider', width: '100%', height: 5, marginVertical: 30, borderRadius: 50 },
                 {
                     key: 'topRow2', children: [

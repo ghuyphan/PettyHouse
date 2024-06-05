@@ -534,7 +534,10 @@ const HomeScreen = () => {
         // return () => backHandler.remove();
         return () => {
             pb.collection('posts').unsubscribe('*');
-            backHandler.remove()  // Cleanup the subscription
+            BackHandler.addEventListener('hardwareBackPress', () => {
+                // handle back button event here
+                return true; // indicates that the event has been handled
+            });
         };
     }, []);
 

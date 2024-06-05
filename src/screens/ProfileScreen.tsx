@@ -46,6 +46,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
             });
             const newPosts = records.map(record => ({
                 id: record.id,
+                userId: userData?.id, // Add the userId property
                 coordinate: {
                     latitude: record.latitude,
                     longitude: record.longitude
@@ -179,9 +180,9 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                                     ) : (
                                         <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={65} color="#fff" />
                                     )}
-                                    <View style={styles.cameraIcon}>
+                                    <View style={styles.checkIcon}>
                                         {userData?.verified ? (
-                                            <Icon source="check-circle" color={'#77DD77'} size={20} />
+                                            <Icon source="check-decagram" color={'#a4e3b8'} size={20} />
                                         ) : (
                                             null
                                         )}
@@ -289,14 +290,12 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         // gap: 10,
     },
-    cameraIcon: {
+    checkIcon: {
         position: 'absolute',
-        backgroundColor: '#f0f9fc',
-        padding: 5,
-        borderRadius: 50,
         bottom: 0,
-        right: -5,
-
+        left: 5,
+        backgroundColor: '#fff',
+        borderRadius: 50,
     },
     userInfo: {
         flexDirection: 'column',

@@ -26,6 +26,7 @@ const DetailFlatList: React.FC<DetailFlatListProps> = ({
     const { t } = useTranslation();
     const postData = useSelector((state: RootState) => state.post.postData);
     const [comments, setComments] = useState<TypeComment[]>([]);
+    const [newComment, setNewComment] = useState('');
     const [post, setPost] = useState<TypeMarker>();
     const createdDate = useMemo(() => moment(post?.created), [post?.created]);
     const currentDate = useMemo(() => moment(), []);
@@ -78,6 +79,7 @@ const DetailFlatList: React.FC<DetailFlatListProps> = ({
                 username: postRecord.expand?.user.username,
                 avatar: postRecord.expand?.user.avatar,
                 created: postRecord.created,
+                userId: pb.authStore.model?.id, // Add the userId property
             });
             setIsLoading(false);
         } catch (error) {
@@ -141,7 +143,7 @@ const DetailFlatList: React.FC<DetailFlatListProps> = ({
         const images = [post?.image1, post?.image2, post?.image3].filter(img => img);
         if (images.length > 1) {
             return (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 250 }} contentContainerStyle={{ gap: 5 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 250 }} contentContainerStyle={{ gap: 10 }}>
                     {images.map((img, index) => (
                         <Image key={index} source={{ uri: img }} style={styles.image} />
                     ))}
@@ -222,19 +224,23 @@ const DetailFlatList: React.FC<DetailFlatListProps> = ({
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}>
-                <View style={styles.commentInput}>
-                    {postData?.avatar ? (
-                        <Avatar.Image source={{ uri: post?.avatar }} size={25} style={styles.avatar} />
-                    ) : (
-                        <Avatar.Text label={post?.username?.slice(0, 2).toUpperCase() ?? 'Default'} size={30} style={styles.avatar} color="#fff" />
-                    )}
-                    <TextInput
-                        multiline
-                        placeholder={t('writeComment')}
-                        style={{ flex: 1 }}
-                        selectionColor="#8ac5db"
-                    />
-                    <IconButton icon="send" size={20} style={styles.sendButton} iconColor='#8ac5db' onPress={() => { }} />
+                <View style={styles.commentContainer}>
+                    <View style={styles.commentInput}>
+                        {postData?.avatar ? (
+                            <Avatar.Image source={{ uri: post?.avatar }} size={25} style={styles.avatar} />
+                        ) : (
+                            <Avatar.Text label={post?.username?.slice(0, 2).toUpperCase() ?? 'Default'} size={25} style={styles.avatar} color="#fff" />
+                        )}
+                        <TextInput
+                            multiline
+                            value={newComment}
+                            onChangeText={setNewComment}
+                            placeholder={t('writeComment')}
+                            style={{ flex: 1 }}
+                            selectionColor="#8ac5db"
+                        />
+                        {newComment && <IconButton icon="send" size={18} style={styles.sendButton} iconColor='#8ac5db' onPress={() => { }} />}
+                    </View>
                 </View>
             </KeyboardAvoidingView>
         </View>
@@ -287,6 +293,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 10,
+        marginTop: 10
     },
     likeButton: {
         flexDirection: 'row',
@@ -328,20 +335,29 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    commentInput: {
-        marginHorizontal: 10,
-        paddingHorizontal: 20,
+    commentContainer: {
+        paddingHorizontal: 10,
+        paddingVertical: 15,
         alignItems: 'center',
         flexDirection: 'row',
         gap: 10,
-        paddingVertical: 5,
         backgroundColor: '#f0f9fc',
+    },
+    commentInput: {
+        flex: 1,
+        height: 50,
+        // marginHorizontal: 10,
+        paddingHorizontal: 15,
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 10,
+        backgroundColor: '#fff',
         borderRadius: 50,
-        marginBottom: 10
+        borderColor: '#ccc',
+        borderWidth: 1,
     },
     sendButton: {
-        backgroundColor: '#f0f9fc',
-
+        backgroundColor: 'transparent',
     }
 });
 

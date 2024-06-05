@@ -119,7 +119,7 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                                 <Text style={styles.userName}>{userData?.username}</Text>
                                 {userData?.verified ?
                                     <View style={styles.verifiedContainer}>
-                                        <Icon source="check-circle" color={'#fff'} size={15} />
+                                        <Icon source="check-decagram" color={'#fff'} size={15} />
                                         <Text style={styles.verifiedText}>{t('verifiedUser')}</Text>
                                     </View>
                                     :
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 5,
         paddingHorizontal: 10,
-        backgroundColor: '#77DD77',
+        backgroundColor: '#a4e3b8',
         borderRadius: 50,
         gap: 5
     },

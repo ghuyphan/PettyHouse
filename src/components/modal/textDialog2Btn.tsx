@@ -13,6 +13,7 @@ interface textDialog2BtnProps {
   dismissLabel?: string; // Optional confirmation label
   confirmLabel?: string;
   dismissable?: boolean;
+  confirmTextColor?: string;
 }
 
 const TextDialog2Btn: React.FC<textDialog2BtnProps> = ({
@@ -25,6 +26,7 @@ const TextDialog2Btn: React.FC<textDialog2BtnProps> = ({
   confirmLabel = "Ok",
   dismissLabel = "Cancel",
   dismissable = true,
+  confirmTextColor = '#8ac5db',
 
 }) => {
   return (
@@ -36,8 +38,8 @@ const TextDialog2Btn: React.FC<textDialog2BtnProps> = ({
           <Text style={{ fontSize: 16 }}>{content}</Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold' }}>{dismissLabel}</Button>
-          <Button onPress={onConfirm} labelStyle={{ fontSize: 16, fontWeight: 'bold' }}>{confirmLabel}</Button>
+          <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold', color: '#8ac5db', }}>{dismissLabel}</Button>
+          <Button onPress={onConfirm} labelStyle={{ fontSize: 16, fontWeight: 'bold', color: confirmTextColor, }}>{confirmLabel}</Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>

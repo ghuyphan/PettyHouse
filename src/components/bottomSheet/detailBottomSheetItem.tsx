@@ -6,6 +6,7 @@ import moment from 'moment';
 import { useTranslation } from 'react-i18next';
 import TextDialogCheckBox from '../modal/textDialogCheckBox';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { getTimeAgo } from '../../utils/timeUtils';
 
 interface DetailBottomSheetItemProps {
     item: {
@@ -30,25 +31,7 @@ const DetailBottomSheetItem: FC<DetailBottomSheetItemProps> = ({ item, toggleLik
     const closeMenu = () => setMenuVisible(false);
     const [isVisible, setIsVisible] = useState(false);
 
-    const timeAgoText = useMemo(() => {
-        const timeDiffHours = currentDate.diff(createdDate, 'hours');
-        if (timeDiffHours < 1) {
-            return t('lesThanAnHourAgo');
-        } else if (timeDiffHours < 24) {
-            return `${timeDiffHours} ${t('hoursAgo')}`;
-        } else {
-            const daysDiff = currentDate.diff(createdDate, 'days');
-            if (daysDiff < 7) {
-                return `${daysDiff} ${t('daysAgo')}`;
-            } else if (daysDiff < 31) {
-                const weeksDiff = Math.floor(daysDiff / 7);
-                return `${weeksDiff} ${weeksDiff > 1 ? t('weeksAgo') : t('weekAgo')}`;
-            } else {
-                const monthsDiff = currentDate.diff(createdDate, 'months');
-                return `${monthsDiff} ${monthsDiff > 1 ? 'months' : 'month'} ago`;
-            }
-        }
-    }, [createdDate, currentDate, t]);
+    const timeAgoText = useMemo(() => getTimeAgo(createdDate, t), [createdDate, t]);
 
     const scale = useSharedValue(1);
 

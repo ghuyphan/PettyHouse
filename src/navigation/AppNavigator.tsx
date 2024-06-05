@@ -11,8 +11,9 @@ import CreateNewScreen from '../screens/CreateNewScreen';
 import AvatarScreen from '../screens/ProfileSubScreens/AvatarScreen';
 import UserProfileScreen from '../screens/HomeScreenSubScreens/UserProfileScreen';
 import ImageViewerScreen from '../screens/ImageViewerScreen';
+import { RootStackParamList } from '../types/navigation';
 
-const Stack = createSharedElementStackNavigator();
+const Stack = createSharedElementStackNavigator<RootStackParamList>();
 
 interface AppNavigatorProps {
     initialRouteName: string;
@@ -54,7 +55,7 @@ function AppNavigator({ initialRouteName }: AppNavigatorProps) {
                 component={AvatarScreen}
                 options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }}
             />
-              <Stack.Screen
+            <Stack.Screen
                 name="UserProfile"
                 component={UserProfileScreen}
                 options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
@@ -75,7 +76,7 @@ function AppNavigator({ initialRouteName }: AppNavigatorProps) {
                 component={ImageViewerScreen}
                 options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter }}
             />
-          
+
         </Stack.Navigator>
     );
 }

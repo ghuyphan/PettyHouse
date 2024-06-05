@@ -35,7 +35,8 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
     const [longitude, setLongitude] = useState<number | null>(null);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [isIconDialogVisible, setIsIconDialogVisible] = useState(false);
-    const [iconDialogMessage, setIconDialogMessage] = useState('');
+    const [isIconDialogMessage, setIsIconDialogMessage] = useState('');
+
     const [isBottomSheetClosable, setIsBottomSheetClosable] = useState(true);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
@@ -93,7 +94,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
         } else {
             navigation.goBack();
         }
-    }; ``
+    };
 
     const handleLocation = async () => {
         bottomSheetRef.current?.snapToIndex(0);
@@ -102,6 +103,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
     const handleOpenGallery = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult.granted) {
+            setIsIconDialogMessage(t('galleryPermissionRequired'));
             setIsIconDialogVisible(true);
             return;
         }
@@ -115,12 +117,14 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
         if (!pickerResult.canceled) {
             const selectedImages = pickerResult.assets ? pickerResult.assets.map((image) => image.uri) : [];
             if (selectedImages.length > 3) {
+                setIsIconDialogMessage(t('maxImages'));
                 setIsIconDialogVisible(true);
                 return;
             }
             setImages((prevImages) => {
                 const totalImages = prevImages.length + selectedImages.length;
                 if (totalImages > 3) {
+                    setIsIconDialogMessage(t('maxImages'));
                     setIsIconDialogVisible(true);
                     return prevImages;
                 }
@@ -132,6 +136,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
     const handleOpenCamera = async () => {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
         if (!permissionResult.granted) {
+            setIsIconDialogMessage(t('cameraPermissionRequired'));
             setIsIconDialogVisible(true);
             return;
         }
@@ -146,6 +151,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
 
     const handlePost = async () => {
         if (images.length === 0) {
+            setIsIconDialogMessage(t('selectAtLeastOneImage'));
             setIsIconDialogVisible(true);
             return;
         }
@@ -155,12 +161,13 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
         try {
             let postLatitude = latitude;
             let postLongitude = longitude;
-            let postAddress = locationAddress;
+            let postAddress: string | null = locationAddress;
 
             if (locationOption === 'current') {
                 // 1. Get User's Current Location
                 const { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
+                    setIsIconDialogMessage(t('locationPermissionRequired'));
                     setIsIconDialogVisible(true);
                     setIsLoading(false);
                     return;
@@ -175,24 +182,29 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                 const geocodeResponse = await axios.get(geocodeUrl);
 
                 if (geocodeResponse.data && geocodeResponse.data.display_name) {
-                    postAddress = geocodeResponse.data.display_name;
-                    const addressParts = postAddress.split(", ");
-                    const firstTwoParts = addressParts.slice(0, 2);
-                    postAddress = firstTwoParts.join(", ");
-                    const districtMatch = postAddress.match(/District\s+(\w+)/);
+                    const displayName = geocodeResponse.data.display_name;
+                    postAddress = displayName ? displayName.trim() : null;
+                    const addressParts = postAddress?.split(", ");
+                    const firstTwoParts = addressParts?.slice(0, 2);
+                    postAddress = firstTwoParts?.join(", ");
+                    const districtMatch = postAddress?.match(/District\s+(\w+)/);
                     if (districtMatch) {
                         const districtName = districtMatch[1];
-                        postAddress = postAddress.replace(districtMatch[0], districtName.match(/^\d+$/) ? "District " + districtName : districtName + " District");
+                        postAddress = postAddress?.replace(districtMatch[0], districtName.match(/^\d+$/) ? "District " + districtName : districtName + " District");
                     }
-                    postAddress = postAddress.replace(/\s+/g, " ").trim();
+                    postAddress = postAddress?.replace(/\s+/g, " ").trim();
                 } else {
                     console.warn("Geocoding failed to retrieve address.");
+                    postAddress = null;
                 }
             }
 
             // 3. Upload Images to Cloudinary
             const uploadedImageUrls = await Promise.all(
                 images.map(async (imageUri) => {
+                    const fetchResponse = await fetch(imageUri);
+                    const blob = await fetchResponse.blob();
+
                     const formData = new FormData();
                     formData.append('file', {
                         uri: imageUri,
@@ -200,16 +212,18 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                         name: `upload_${Date.now()}.jpg`,
                     });
                     formData.append('upload_preset', 'qfvwzasi');
+                    console.log(formData);
 
-                    const response = await axios.post(
+                    const postResponse = await axios.post(
                         `https://api.cloudinary.com/v1_1/huyphan/image/upload`,
                         formData,
                         { headers: { 'Content-Type': 'multipart/form-data' } }
                     );
 
-                    return response.data.secure_url;
+                    return postResponse.data.secure_url;
                 })
             );
+
 
             // 4. Create New Post Object
             const newPost = {
@@ -239,24 +253,30 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
             if (axios.isAxiosError(error)) {
                 if (error.response) {
                     console.error('Cloudinary or Geocoding Error:', error.response.data);
+                    setIsIconDialogMessage(t('cloudinaryGeocodingError'));
                     setIsIconDialogVisible(true);
                 } else if (error.request) {
                     console.error('No response from server:', error.request);
+                    setIsIconDialogMessage(t('noServerResponse'));
                     setIsIconDialogVisible(true);
                 } else {
                     console.error('Error:', error.message);
+                    setIsIconDialogMessage(t('unknownError'));
                     setIsIconDialogVisible(true);
                 }
             } else {
                 console.error('Unexpected error:', error);
+                setIsIconDialogMessage(t('unexpectedError'));
                 setIsIconDialogVisible(true);
             }
         }
     };
 
+
     const handleSaveLocation = async () => {
         if (locationOption === 'chosen') {
             if (!chosenLocation) {
+                setIsIconDialogMessage(t('enterValidLocation'));
                 setIsIconDialogVisible(true);
                 return;
             }
@@ -272,6 +292,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                 if (geocodeResponse.data && geocodeResponse.data[0]) {
                     // Update the state with the new location data
                     const locationData = geocodeResponse.data[0];
+                    console.log(locationData);
                     setLatitude(locationData.lat);
                     setLongitude(locationData.lon);
                     setLocationAddress(chosenLocation);
@@ -281,6 +302,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                     bottomSheetRef.current?.close();
                 } else {
                     // Show the location dialog if geocoding fails
+                    setIsIconDialogMessage(t('locationNotFound'));
                     setIsIconDialogVisible(true);
                     setIsLoadingLocation(false);
                     console.error('Geocoding failed to retrieve address.');
@@ -288,6 +310,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
             } catch (error) {
                 // Handle and log any errors that occur during geocoding
                 console.error('Geocoding Error:', error);
+                setIsIconDialogMessage(t('geocodingError'));
                 setIsIconDialogVisible(true);
                 setIsLoadingLocation(false);
             }
@@ -313,7 +336,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
             <Modal visible={isLoading} transparent={true} animationType="fade">
                 <View style={styles.modalBackground}>
                     <ActivityIndicator size="large" color="#fff" />
-                    <Text style={styles.modalText}>Uploading Post...</Text>
+                    <Text style={styles.modalText}>{t('uploadingPost')}</Text>
                 </View>
             </Modal>
             <TextDialog2Btn
@@ -323,14 +346,15 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                 title={t('confirmExit')}
                 content={t('unsavedChanges')}
                 confirmLabel={t('yes')}
+                confirmTextColor='#FF5733'
                 dismissLabel={t('no')}
             />
             <TextDialog
                 icon='alert-outline'
-                isVisible={true}
+                isVisible={isIconDialogVisible}
                 onDismiss={() => setIsIconDialogVisible(false)}
                 title={t('attention')}
-                content={t('locationPermissionRequired')}
+                content={isIconDialogMessage}
                 confirmLabel={t('ok')}
             />
             {!isVerified ? (
@@ -452,7 +476,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
 
                         </View>
                         <Button mode='contained' loading={isLoadingLocation} disabled={isLoadingLocation} onPress={handleSaveLocation} style={styles.bottomSheetButton}>
-                            {t('save')}
+                            {isLoadingLocation ? t('findingAddress') : t('save')}
                         </Button>
                     </View>
                 </BottomSheetScrollView>

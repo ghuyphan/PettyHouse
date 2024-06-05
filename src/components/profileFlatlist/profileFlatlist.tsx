@@ -8,6 +8,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import pb from '../../services/pocketBase';
 import TextDialog2Btn from '../modal/textDialog2Btn';
 import { useNavigation } from '@react-navigation/native';
+import { getTimeAgo } from '../../utils/timeUtils';
 
 interface ProfileFlatlistProps {
     item: {
@@ -46,30 +47,7 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
         navigation.navigate('ImageViewer', { images, initialIndex: index });
     }, [item.image1, item.image2, item.image3, navigation]);
 
-
-    const timeAgoText = useMemo(() => {
-        const timeDiffMinutes = currentDate.diff(createdDate, 'minutes');
-        const timeDiffHours = Math.floor(timeDiffMinutes / 60);
-        const timeDiffSeconds = currentDate.diff(createdDate, 'seconds');
-        if (timeDiffSeconds < 60) {
-            return t('justNow');
-        } else if (timeDiffMinutes < 60) {
-            return `${timeDiffMinutes} ${t('minutesAgo')}`;
-        } else if (timeDiffHours < 24) {
-            return `${timeDiffHours} ${t('hoursAgo')}`;
-        } else {
-            const daysDiff = Math.floor(timeDiffHours / 24);
-            if (daysDiff < 7) {
-                return `${daysDiff} ${t('daysAgo')}`;
-            } else if (daysDiff < 31) {
-                const weeksDiff = Math.floor(daysDiff / 7);
-                return `${weeksDiff} ${weeksDiff > 1 ? t('weeksAgo') : t('weekAgo')}`;
-            } else {
-                const monthsDiff = currentDate.diff(createdDate, 'months');
-                return `${monthsDiff} ${monthsDiff > 1 ? t('monthsAgo') : t('monthAgo')}`;
-            }
-        }
-    }, [createdDate, currentDate, t]);
+    const timeAgoText = useMemo(() => getTimeAgo(createdDate, t), [createdDate, t]);
 
     const scale = useSharedValue(1);
 
@@ -113,7 +91,7 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
         const images = [item.image1, item.image2, item.image3].filter(img => img);
         if (images.length > 1) {
             return (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 5, paddingLeft: 35 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 10, paddingLeft: 35 }}>
                     {images.map((img, index) => (
                         <TouchableOpacity key={index} onPress={() => handleImagePress(index)}>
                             <Image source={{ uri: img }} style={styles.image} />
@@ -163,7 +141,7 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                         <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-off-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { setIsVisible(true); setMenuVisible(false) }} title={t('hide')} />}
                     <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'pencil-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('edit')} />
                     <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('share')} />
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'delete-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => { }} title={t('delete')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#ff6f61' } }} leadingIcon={'delete-outline'} titleStyle={{ color: '#ff6f61' }} onPress={() => { }} title={t('delete')} />
                 </Menu>
             </View>
             <Text style={styles.title}>
@@ -175,11 +153,11 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                     <Animated.View style={animatedStyle}>
                         <Button
                             style={styles.likeButton}
-                            labelStyle={{ color: item.hasLiked ? '#FF5733' : '#8ac5db', fontSize: 20 }}
+                            labelStyle={{ color: item.hasLiked ? '#ff6f61' : '#8ac5db', fontSize: 20 }}
                             onPress={handleToggleLike}
                             icon={item.hasLiked ? 'heart' : 'heart-outline'}
                         >
-                            <Text style={{ color: item.hasLiked ? '#FF5733' : '#8ac5db', fontSize: 14 }}>{item.like}</Text>
+                            <Text style={{ color: item.hasLiked ? '#ff6f61' : '#8ac5db', fontSize: 14 }}>{item.like}</Text>
                         </Button>
                     </Animated.View>
 

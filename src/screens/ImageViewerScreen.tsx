@@ -3,15 +3,20 @@ import { View, StyleSheet, StatusBar } from 'react-native';
 import { IconButton } from 'react-native-paper';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
-type ImageViewerScreenRouteProp = RouteProp<{ params: { images: string[], initialIndex: number } }, 'params'>;
+// Define the type for your route parameters
+type RootStackParamList = {
+    ImageViewer: { images: string[], initialIndex: number };
+};
+
+type ImageViewerScreenRouteProp = RouteProp<RootStackParamList, 'ImageViewer'>;
 
 const ImageViewerScreen: FC = () => {
     const route = useRoute<ImageViewerScreenRouteProp>();
     const { images, initialIndex } = route.params;
 
-    const navigation = useNavigation();
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
     return (
         <View style={styles.container}>
@@ -20,18 +25,13 @@ const ImageViewerScreen: FC = () => {
                     icon="close"
                     size={20}
                     iconColor='#8ac5db'
-                    onPress={() => {
-                        // navigate back to the previous screen
-                        // ensure to import useNavigation from @react-navigation/native
-                        navigation.goBack();
-                    }}
+                    onPress={() => navigation.goBack()}
                     style={{ backgroundColor: '#f0f9fc' }}
                 />
             </View>
             <ImageViewer
-                imageUrls={images.map(img => ({ url: img }))}
+                imageUrls={images.filter(img => img).map(img => ({ url: img }))}
                 style={styles.fullImage}
-                renderIndicator={() => null}
                 enableSwipeDown={true}
                 swipeDownThreshold={100}
                 onSwipeDown={() => navigation.goBack()}
@@ -46,6 +46,8 @@ const ImageViewerScreen: FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        paddingVertical: 15,
+        backgroundColor: 'black'
     },
     header: {
         position: 'absolute',

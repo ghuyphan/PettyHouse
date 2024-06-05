@@ -32,7 +32,7 @@ const TextDialog: React.FC<textDialogProps> = ({
               <Text style={{ fontSize: 16 }}>{content}</Text>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold'}}>{confirmLabel}</Button>
+              <Button onPress={onDismiss} labelStyle={{ fontSize: 16, fontWeight: 'bold', color: '#8ac5db'}}>{confirmLabel}</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>

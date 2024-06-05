@@ -8,6 +8,7 @@ import TextDialogCheckBox from '../modal/textDialogCheckBox';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
+import { getTimeAgo } from '../../utils/timeUtils';
 
 interface BottomSheetItemProps {
     item: {
@@ -41,29 +42,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike
     const [isVisible, setIsVisible] = useState(false);
     const [isReported, setIsReported] = useState(false);
 
-    const timeAgoText = useMemo(() => {
-        const timeDiffMinutes = currentDate.diff(createdDate, 'minutes');
-        const timeDiffHours = Math.floor(timeDiffMinutes / 60);
-        const timeDiffSeconds = currentDate.diff(createdDate, 'seconds');
-        if (timeDiffSeconds < 60) {
-            return t('justNow');
-        } else if (timeDiffMinutes < 60) {
-            return `${timeDiffMinutes} ${t('minutesAgo')}`;
-        } else if (timeDiffHours < 24) {
-            return `${timeDiffHours} ${t('hoursAgo')}`;
-        } else {
-            const daysDiff = Math.floor(timeDiffHours / 24);
-            if (daysDiff < 7) {
-                return `${daysDiff} ${t('daysAgo')}`;
-            } else if (daysDiff < 31) {
-                const weeksDiff = Math.floor(daysDiff / 7);
-                return `${weeksDiff} ${weeksDiff > 1 ? t('weeksAgo') : t('weekAgo')}`;
-            } else {
-                const monthsDiff = currentDate.diff(createdDate, 'months');
-                return `${monthsDiff} ${monthsDiff > 1 ? t('monthsAgo') : t('monthAgo')}`;
-            }
-        }
-    }, [createdDate, currentDate, t]);
+    const timeAgoText = useMemo(() => getTimeAgo(createdDate, t), [createdDate, t]);
 
     const scale = useSharedValue(1);
 
@@ -88,7 +67,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike
     }, [toggleReport]);
 
     const handleImagePress = useCallback((index: number) => {
-        const images = [item.image1, item.image2, item.image3].filter(img => img);
+        const images = [item.image1, item.image2, item.image3].filter(img => img !== undefined) as string[];
         navigation.navigate('ImageViewer', { images, initialIndex: index });
     }, [item.image1, item.image2, item.image3, navigation]);
 
@@ -96,7 +75,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike
         const images = [item.image1, item.image2, item.image3].filter(img => img);
         if (images.length > 1) {
             return (
-                <ScrollView nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 5, paddingLeft: 35 }} overScrollMode={'never'}>
+                <ScrollView nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 10, paddingLeft: 60 }} overScrollMode={'never'}>
                     {images.map((img, index) => (
                         <TouchableOpacity key={index} onPress={() => handleImagePress(index)}>
                             <Image source={{ uri: img }} style={styles.image} />
@@ -126,7 +105,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike
                     <View style={styles.topContainer}>
                         <View style={styles.userSection}>
                             {item.avatar ? (
-                                <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}>
+                                <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId } )}>
                                     <Avatar.Image source={{ uri: item.avatar }} size={30} style={styles.avatar} />
                                 </TouchableOpacity>
                             ) : (
@@ -152,7 +131,7 @@ const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike
                             anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
                         >
                             <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('share')} />
-                            <Menu.Item theme={{ colors: { onSurfaceVariant: '#FF5733' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#FF5733' }} onPress={() => (
+                            <Menu.Item theme={{ colors: { onSurfaceVariant: '#ff6f61' } }} leadingIcon={'comment-alert-outline'} titleStyle={{ color: '#ff6f61' }} onPress={() => (
                                 <>
                                     {setIsVisible(true)}
                                     {closeMenu()}
@@ -169,11 +148,11 @@ const BottomSheetItem: FC<BottomSheetItemProps> = React.memo(({ item, toggleLike
                                     <Animated.View style={animatedStyle}>
                                         <Button
                                             style={styles.likeButton}
-                                            labelStyle={{ color: item.hasLiked ? '#FF5733' : '#8ac5db', fontSize: 20 }}
+                                            labelStyle={{ color: item.hasLiked ? '#ff6f61' : '#8ac5db', fontSize: 20 }}
                                             onPress={handleToggleLike}
                                             icon={item.hasLiked ? 'heart' : 'heart-outline'}
                                         >
-                                            <Text style={{ color: item.hasLiked ? '#FF5733' : '#8ac5db', fontSize: 14 }}>{item.like}</Text>
+                                            <Text style={{ color: item.hasLiked ? '#ff6f61' : '#8ac5db', fontSize: 14 }}>{item.like}</Text>
                                         </Button>
                                     </Animated.View>
                                     <IconButton
@@ -207,7 +186,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: '#fff',
         borderRadius: 15,
-        marginHorizontal: 20,
+        // marginHorizontal: 20,
         flexDirection: 'column'
     },
     topContainer: {
@@ -215,6 +194,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 10,
+        marginHorizontal: 20,
     },
     avatar: {},
     userName: {
@@ -241,24 +221,26 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         flexDirection: 'column',
+
     },
     title: {
         fontSize: 14,
         width: '100%',
         marginBottom: 10,
         marginLeft: 35,
+        paddingHorizontal: 25
     },
     image: {
         flex: 1,
         borderRadius: 15,
-        aspectRatio: 1
+        aspectRatio: 1,
     },
     actionSection: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 10,
-        marginLeft: 25,
+        marginLeft: 50,
     },
     likeDislikeButtons: {
         flexDirection: 'row',
