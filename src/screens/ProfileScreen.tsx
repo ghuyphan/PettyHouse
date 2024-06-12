@@ -24,8 +24,6 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
     const { t } = useTranslation();
     const [snackbarVisible, setSnackbarVisible] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
-
-
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const [isLoading, setIsLoading] = useState(true);
@@ -121,9 +119,11 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
         }
     };
 
-
+    const handleOpenComment = () => {
+        bottomSheetRef.current?.expand();
+    }
     const debouncedToggleLike = useRef(debounce(toggleLike, 200)).current;
-    const snapPoints = useMemo(() => ['20%', '20%'], []);
+    const snapPoints = useMemo(() => ['94%', '94%'], []);
     const renderContent = () => (
         <View style={styles.bottomSheetItem}>
             {/* <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"camera"} mode="contained" onPress={() => }>
@@ -205,6 +205,7 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                                 isLastItem={posts.indexOf(item) === posts.length - 1}
                                 toggleLike={() => debouncedToggleLike(item.id)}
                                 fetchUserPosts={fetchUserPosts}
+                                showDetail={handleOpenComment}
                             />
                         </View>
                     )}
@@ -212,20 +213,6 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
                 >
                 </Animated.FlatList >
             )}
-
-            <BottomSheet
-                ref={bottomSheetRef}
-                index={-1}
-                handleIndicatorStyle={{ backgroundColor: '#ccc' }}
-                snapPoints={snapPoints}
-                enablePanDownToClose={true}
-                backdropComponent={(props) => (
-                    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.4} />
-                )}
-            >
-                {renderContent()}
-            </BottomSheet>
-
             <Snackbar
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
@@ -236,12 +223,33 @@ const ProfileScreen: React.FC<SettingsProps> = () => {
 
             <Animated.View style={[styles.headerSmall, headerSmallStyle]}>
                 <Text style={styles.headerSmallText}>{userData?.name}</Text>
-                {imageUri ? (
-                    <Avatar.Image source={{ uri: imageUri }} size={35} />
-                ) : (
-                    <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={35} color="#fff" />
-                )}
+                <View>
+                    {imageUri ? (
+                        <Avatar.Image source={{ uri: imageUri }} size={35} />
+                    ) : (
+                        <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={35} color="#fff" />
+                    )}
+                    <View style={styles.checkIconSmall}>
+                        {userData?.verified ? (
+                            <Icon source="check-decagram" color={'#a4e3b8'} size={15} />
+                        ) : (
+                            null
+                        )}
+                    </View>
+                </View>
             </Animated.View>
+            <BottomSheet
+                ref={bottomSheetRef}
+                index={-1}
+                handleIndicatorStyle={{ backgroundColor: '#ccc' }}
+                snapPoints={snapPoints}
+                enablePanDownToClose={true}
+                backdropComponent={(props) => (
+                    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.7} />
+                )}
+            >
+                {renderContent()}
+            </BottomSheet>
         </View >
     );
 };
@@ -293,7 +301,14 @@ const styles = StyleSheet.create({
     checkIcon: {
         position: 'absolute',
         bottom: 0,
-        left: 5,
+        left: 0,
+        backgroundColor: '#fff',
+        borderRadius: 50,
+    },
+    checkIconSmall: {
+        position: 'absolute',
+        left: 0,
+        bottom: 0,
         backgroundColor: '#fff',
         borderRadius: 50,
     },

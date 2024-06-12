@@ -33,15 +33,17 @@ interface ProfileFlatlistProps {
 
 const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastItem, showDetail, fetchUserPosts }) => {
     const { t } = useTranslation();
-    const createdDate = useMemo(() => moment(item.created), [item.created]);
-    const currentDate = useMemo(() => moment(), []);
-
-    const [menuVisible, setMenuVisible] = useState(false);
     const navigation = useNavigation();
+
+    const createdDate = useMemo(() => moment(item.created), [item.created]);
+    const [dialogTitle, setDialogTitle] = useState<string>('');
+    const [dialogMessage, setDialogMessage] = useState<string>('');
+    const [menuVisible, setMenuVisible] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
 
     const openMenu = useCallback(() => setMenuVisible(true), []);
     const closeMenu = useCallback(() => setMenuVisible(false), []);
+
     const handleImagePress = useCallback((index: number) => {
         const images = [item.image1, item.image2, item.image3].filter(img => img);
         navigation.navigate('ImageViewer', { images, initialIndex: index });
@@ -87,11 +89,21 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
         }
     };
 
+    const deletePost = async () => {
+        try {
+            await pb.collection('posts').delete(item.id);
+            setIsVisible(false);
+            fetchUserPosts();
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
     const renderImages = useCallback(() => {
         const images = [item.image1, item.image2, item.image3].filter(img => img);
         if (images.length > 1) {
             return (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 10, paddingLeft: 35 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 10, paddingLeft: 55 }}>
                     {images.map((img, index) => (
                         <TouchableOpacity key={index} onPress={() => handleImagePress(index)}>
                             <Image source={{ uri: img }} style={styles.image} />
@@ -109,6 +121,30 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
             );
         }
     }, [item.image1, item.image2, item.image3, handleImagePress]);
+
+    const handleMenuItemPress = useCallback((action: 'show' | 'hide' | 'delete') => {
+        let title = '';
+        let message = '';
+
+        switch (action) {
+            case 'show':
+                title = t('Show Post');
+                message = t('Are you sure you want to show this post?');
+                break;
+            case 'hide':
+                title = t('Hide Post');
+                message = t('Are you sure you want to hide this post?');
+                break;
+            case 'delete':
+                title = t('Delete Post');
+                message = t('Are you sure you want to delete this post?');
+                break;
+        }
+
+        setDialogTitle(title);
+        setDialogMessage(message);
+        setIsVisible(true);
+    }, [t]);
 
     return (
         <View style={styles.card}>
@@ -136,12 +172,12 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
                     anchor={<IconButton icon="dots-vertical" onPress={openMenu} size={22} iconColor='#8ac5db' style={styles.moreButton} />}
                 >
                     {!item.visible ?
-                        <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { setIsVisible(true); setMenuVisible(false) }} title={t('show')} />
+                        <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => handleMenuItemPress('show')} title={t('show')} />
                         :
-                        <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-off-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { setIsVisible(true); setMenuVisible(false) }} title={t('hide')} />}
+                        <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'eye-off-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => handleMenuItemPress('hide')} title={t('hide')} />}
                     <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'pencil-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('edit')} />
                     <Menu.Item theme={{ colors: { onSurfaceVariant: '#8ac5db' } }} leadingIcon={'share-outline'} titleStyle={{ color: '#8ac5db' }} onPress={() => { }} title={t('share')} />
-                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#ff6f61' } }} leadingIcon={'delete-outline'} titleStyle={{ color: '#ff6f61' }} onPress={() => { }} title={t('delete')} />
+                    <Menu.Item theme={{ colors: { onSurfaceVariant: '#ff6f61' } }} leadingIcon={'delete-outline'} titleStyle={{ color: '#ff6f61' }} onPress={() => handleMenuItemPress('delete')} title={t('delete')} />
                 </Menu>
             </View>
             <Text style={styles.title}>
@@ -172,14 +208,19 @@ const ProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLastIte
             </View>
             {!isLastItem && <View style={styles.divider} />}
             <TextDialog2Btn
+                title={dialogTitle}
+                content={dialogMessage}
                 confirmLabel={item.visible ? t('hide') : t('show')}
-                content={'Hide this post?'}
+                onConfirm={() => {
+                    if (dialogTitle.includes('Hide')) hidePost();
+                    else if (dialogTitle.includes('Show')) showPost();
+                    else if (dialogTitle.includes('Delete')) deletePost();
+                }}
+                
                 dismissLabel={t('cancelButton')}
-                dismissable={true}
-                isVisible={isVisible}
                 onDismiss={() => setIsVisible(false)}
-                onConfirm={() => item.visible ? hidePost() : showPost()}
-                title={t('reportTitle')}
+                isVisible={isVisible}
+                dismissable={true}
             />
         </View>
     );
@@ -189,7 +230,6 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: '#fff',
         borderRadius: 15,
-        marginHorizontal: 20,
         flexDirection: 'column'
     },
     topContainer: {
@@ -197,6 +237,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 15,
+        paddingHorizontal: 20
     },
     avatar: {},
     userName: {
@@ -227,7 +268,8 @@ const styles = StyleSheet.create({
         color: '#555',
         width: '100%',
         marginBottom: 10,
-        marginLeft: 35
+        marginLeft: 35,
+        paddingHorizontal: 20,
     },
     image: {
         flex: 1,
@@ -240,7 +282,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 10,
-        marginLeft: 25,
+        marginLeft: 45,
     },
     likeDislikeButtons: {
         flexDirection: 'row',

@@ -7,6 +7,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { useNavigation } from '@react-navigation/native';
 import pb from '../../services/pocketBase';
 import TextDialog2Btn from '../modal/textDialog2Btn';
+import { getTimeAgo } from '../../utils/timeUtils';
 
 
 interface ProfileFlatlistProps {
@@ -47,29 +48,7 @@ const UserProfileFlatlist: FC<ProfileFlatlistProps> = ({ item, toggleLike, isLas
         navigation.navigate('ImageViewer', { images, initialIndex: index });
     }, [item.image1, item.image2, item.image3, navigation]);
 
-    const timeAgoText = useMemo(() => {
-        const timeDiffMinutes = currentDate.diff(createdDate, 'minutes');
-        const timeDiffHours = Math.floor(timeDiffMinutes / 60);
-        const timeDiffSeconds = currentDate.diff(createdDate, 'seconds');
-        if (timeDiffSeconds < 60) {
-            return t('justNow');
-        } else if (timeDiffMinutes < 60) {
-            return `${timeDiffMinutes} ${t('minutesAgo')}`;
-        } else if (timeDiffHours < 24) {
-            return `${timeDiffHours} ${t('hoursAgo')}`;
-        } else {
-            const daysDiff = Math.floor(timeDiffHours / 24);
-            if (daysDiff < 7) {
-                return `${daysDiff} ${t('daysAgo')}`;
-            } else if (daysDiff < 31) {
-                const weeksDiff = Math.floor(daysDiff / 7);
-                return `${weeksDiff} ${weeksDiff > 1 ? t('weeksAgo') : t('weekAgo')}`;
-            } else {
-                const monthsDiff = currentDate.diff(createdDate, 'months');
-                return `${monthsDiff} ${monthsDiff > 1 ? t('monthsAgo') : t('monthAgo')}`;
-            }
-        }
-    }, [createdDate, currentDate, t]);
+    const timeAgoText = useMemo(() => getTimeAgo(createdDate, t), [createdDate, t]);
 
     const scale = useSharedValue(1);
 
@@ -205,7 +184,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 15,
         marginHorizontal: 20,
-        flexDirection: 'column'
+        flexDirection: 'column',
     },
     topContainer: {
         flexDirection: 'row',

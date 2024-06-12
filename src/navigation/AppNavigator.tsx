@@ -11,9 +11,8 @@ import CreateNewScreen from '../screens/CreateNewScreen';
 import AvatarScreen from '../screens/ProfileSubScreens/AvatarScreen';
 import UserProfileScreen from '../screens/HomeScreenSubScreens/UserProfileScreen';
 import ImageViewerScreen from '../screens/ImageViewerScreen';
-import { RootStackParamList } from '../types/navigation';
 
-const Stack = createSharedElementStackNavigator<RootStackParamList>();
+const Stack = createSharedElementStackNavigator();
 
 interface AppNavigatorProps {
     initialRouteName: string;

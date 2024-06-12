@@ -13,7 +13,6 @@ import i18n from '../utils/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/rootReducer';
-import EditProfileScreen from './SettingSubScreens/EditProfile';
 
 interface SettingsProps { }
 
@@ -132,22 +131,17 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                         </View>
                     </TouchableOpacity>
                     <List.Section style={styles.listSection}>
-                        {/* <List.Subheader style={{ marginHorizontal: -5 }}>Help</List.Subheader> */}
                         <View style={styles.listItemContainer}>
-
+                            <TouchableOpacity onPress={() => navigation.navigate('EditProfile' as never)}>
+                                <List.Item
+                                    title={t('personalInformation')}
+                                    left={() => <List.Icon color={colors.primary} icon="shield-account-outline" />}
+                                    right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
+                                />
+                            </TouchableOpacity>
                             <List.Item
-                                title="Tracker Guide"
-                                left={() => <List.Icon color={colors.primary} icon="book-open-variant" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Features Guide"
-                                left={() => <List.Icon color={colors.primary} icon="format-list-bulleted" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Help Center"
-                                left={() => <List.Icon color={colors.primary} icon="lifebuoy" />}
+                                title={t('accountVerification')}
+                                left={() => <List.Icon color={colors.primary} icon="account-check-outline" />}
                                 right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                         </View>
@@ -231,8 +225,11 @@ const SettingScreen: React.FC<SettingsProps> = () => {
                     isVisible={isVisible}
                     onDismiss={() => setIsVisible(false)}
                     onConfirm={() => { setIsVisible(false); logout() }}
+                    confirmLabel={t('logout')}
+                    dismissLabel={t('cancelButton')}
+                    confirmTextColor='#ff6f61 '
                     title={t('logout') + '?'}
-                    content='Are you sure you want to log out?'
+                    content={t('logoutConfirm')}
                 />
             </Animated.ScrollView>
             <Animated.View style={[styles.headerSmall, headerSmallStyle]}>
@@ -285,7 +282,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 10,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
+        marginBottom: 10,
         borderRadius: 20,
         gap: 10,
     },

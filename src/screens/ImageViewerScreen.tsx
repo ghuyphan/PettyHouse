@@ -32,8 +32,6 @@ const ImageViewerScreen: FC = () => {
             <ImageViewer
                 imageUrls={images.filter(img => img).map(img => ({ url: img }))}
                 style={styles.fullImage}
-                enableSwipeDown={true}
-                swipeDownThreshold={100}
                 onSwipeDown={() => navigation.goBack()}
                 useNativeDriver
                 index={initialIndex}

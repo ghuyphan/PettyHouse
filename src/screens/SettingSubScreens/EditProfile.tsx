@@ -63,15 +63,22 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
         }
     };
 
-    const snapPoints = useMemo(() => ['20%', '20%'], []);
+    const snapPoints = useMemo(() => ['24%', '24%'], []);
     const renderContent = () => (
         <View style={styles.bottomSheetItem}>
+            {imageUri ? (
+                <Avatar.Image source={{ uri: imageUri }} size={100} />
+            ) : (
+                <Avatar.Text label={userData?.username ? userData.username.slice(0, 2).toUpperCase() : ''} size={100} color="#fff" />
+            )}
+            <View style={{flexDirection:'column', justifyContent:'center', gap: 10, width: '60%'}}>
             <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"camera"} mode="contained" onPress={handleOpenCamera}>
                 Take a Photo
             </Button>
             <Button labelStyle={{ fontSize: 16, fontWeight: 'bold' }} icon={"image"} mode="contained" onPress={handleOpenGallery}>
-                Pick an Image from Gallery
+                Choose from Gallery
             </Button>
+            </View>
         </View>
     );
 
@@ -85,7 +92,7 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                 style={styles.scrollView}>
                 <View style={styles.contentContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.headerText}>Your info</Text>
+                        <Text style={styles.headerText}>{t('yourInfo')}</Text>
                     </View>
                     <View style={styles.avatarContainer}>
                         <TouchableOpacity onPress={() => bottomSheetRef.current?.expand()}>
@@ -117,26 +124,6 @@ const EditProfileScreen: React.FC<SettingsProps> = () => {
                             <List.Item
                                 title="Account verification"
                                 left={() => <List.Icon color={colors.primary} icon="account-check-outline" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                        </View>
-                    </List.Section>
-                    <List.Section style={styles.listSection}>
-                        {/* <List.Subheader style={{ marginHorizontal: -5 }}>Settings</List.Subheader> */}
-                        <View style={styles.listItemContainer}>
-                            <List.Item
-                                title="Notifications"
-                                left={() => <List.Icon color={colors.primary} icon="bell-outline" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Measurement Units"
-                                left={() => <List.Icon color={colors.primary} icon="ruler-square" />}
-                                right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
-                            />
-                            <List.Item
-                                title="Enhance Accuracy"
-                                left={() => <List.Icon color={colors.primary} icon="crosshairs-gps" />}
                                 right={() => <List.Icon style={{ marginRight: -10 }} color={colors.primary} icon="chevron-right" />}
                             />
                         </View>
@@ -276,9 +263,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#f0f9fc',
     },
     bottomSheetItem: {
+        flexDirection: 'row',
         justifyContent: 'center',
+        alignItems: 'center',
         padding: 20,
-        gap: 10
+        gap: 20
     },
     // Define additional styles if necessary
 });

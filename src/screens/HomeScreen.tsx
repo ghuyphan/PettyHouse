@@ -238,7 +238,7 @@ const HomeScreen = () => {
                         handleLocation();
                         break;
                     case 'fetchingPet':
-                        handleFetchingPet(radius);
+                        handleFetchingPosts(radius);
                         break;
                 }
                 handleLocation();
@@ -310,7 +310,7 @@ const HomeScreen = () => {
         }
     }, [lastClickTime, zoomLevel]);
 
-    const handleFetchingPet = useCallback(async (currentRadius: number) => {
+    const handleFetchingPosts = useCallback(async (currentRadius: number) => {
         setButtonPressed('fetchingPet');
         const currentTime = Date.now();
         const timeSinceLastFetch = currentTime - lastFetchTime.current;
@@ -447,7 +447,7 @@ const HomeScreen = () => {
             if (isRequestInProgress) return;
 
             isRequestInProgress = true;
-            const response = await pb.send(`/api/posts/${postId}/report`, {
+            await pb.send(`/api/posts/${postId}/report`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -597,7 +597,7 @@ const HomeScreen = () => {
                     color={'#fff'}
                     icon="paw"
                     onPress={() => {
-                        handleFetchingPet(radius)
+                        handleFetchingPosts(radius)
                     }}
                     variant='primary'
                     rippleColor={'#f0f9fc'}

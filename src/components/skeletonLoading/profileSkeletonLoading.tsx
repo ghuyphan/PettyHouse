@@ -8,7 +8,7 @@ const ProfileSkeletonLoading: FC<ProfileSkeletonLoadingProps> = ({ isLoading }) 
     return (
 
         <Skeleton
-            containerStyle={{ marginBottom: 20, backgroundColor: '#fff', width: '100%', height: '100%', paddingHorizontal: 20}}
+            containerStyle={{ marginBottom: 20, backgroundColor: '#fff', width: '100%', height: '100%', paddingHorizontal: 20 }}
             isLoading={isLoading}
             layout={[
                 {
@@ -38,10 +38,10 @@ const ProfileSkeletonLoading: FC<ProfileSkeletonLoadingProps> = ({ isLoading }) 
                                 { key: 'address1', width: 180, height: 12 }
                             ], flexDirection: 'column', justifyContent: 'center', gap: 5
                         }
-                    ], flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 5
+                    ], flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 5
                 },
                 { key: 'title1', width: '80%', height: 14, marginBottom: 10, marginLeft: 35 },
-                { key: 'image1', width: '90%', height: 300, borderRadius: 15, marginBottom: 50, marginLeft: 35},
+                { key: 'image1', width: '90%', height: 300, borderRadius: 15, marginBottom: 50, marginLeft: 35 },
                 {
                     key: 'topRow1', children: [
                         { key: 'avatar1', width: 30, height: 30, borderRadius: 50 },
@@ -54,7 +54,7 @@ const ProfileSkeletonLoading: FC<ProfileSkeletonLoadingProps> = ({ isLoading }) 
                     ], flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 5
                 },
                 { key: 'title1', width: '80%', height: 14, marginBottom: 10, marginLeft: 35 },
-                { key: 'image1', width: '90%', height: 300, borderRadius: 15, marginBottom: 50, marginLeft: 35},
+                { key: 'image1', width: '90%', height: 300, borderRadius: 15, marginBottom: 50, marginLeft: 35 },
 
             ]}
         />

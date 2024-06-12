@@ -43,9 +43,9 @@ const TextDialogRadioButton: React.FC<TextDialogRadioButtonProps> = ({
                                     placeholder={t('reasonReport')}
                                     value={otherText}
                                     onChangeText={setOtherText}
-                                    outlineColor='#ccc'
                                     style={styles.input}
-                                    mode='flat'
+                                    mode='outlined'
+                                    outlineColor='#ccc'
                                     maxLength={150}
                                 />
                             )}
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     },
     input: {
         marginVertical: 10,
-        backgroundColor: '#f0f9fc',
+        backgroundColor: '#fff',
         width: '100%',
     },
 });

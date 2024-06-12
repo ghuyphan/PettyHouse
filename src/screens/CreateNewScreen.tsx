@@ -98,56 +98,87 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
 
     const handleLocation = async () => {
         bottomSheetRef.current?.snapToIndex(0);
-    }
-
+    };
     const handleOpenGallery = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permissionResult.granted) {
-            setIsIconDialogMessage(t('galleryPermissionRequired'));
-            setIsIconDialogVisible(true);
-            return;
-        }
-        const pickerResult = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: false,
-            aspect: [4, 4],
-            allowsMultipleSelection: true, // Allow multiple selection
-        });
-
-        if (!pickerResult.canceled) {
-            const selectedImages = pickerResult.assets ? pickerResult.assets.map((image) => image.uri) : [];
-            if (selectedImages.length > 3) {
-                setIsIconDialogMessage(t('maxImages'));
+        try {
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permissionResult.granted) {
+                setIsIconDialogMessage(t('galleryPermissionRequired'));
                 setIsIconDialogVisible(true);
                 return;
             }
-            setImages((prevImages) => {
-                const totalImages = prevImages.length + selectedImages.length;
-                if (totalImages > 3) {
+            const pickerResult = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: false,
+                aspect: [4, 4],
+                allowsMultipleSelection: true, // Allow multiple selection
+            });
+
+            console.log(pickerResult);
+            if (!pickerResult.canceled) {
+                const unsupportedFormats = pickerResult.assets.filter(image => {
+                    if (image.mimeType) {
+                        return !['image/jpeg', 'image/png', 'image/jpg'].includes(image.mimeType);
+                    }
+                    return false;
+                });
+                if (unsupportedFormats.length > 0) {
+                    setIsIconDialogMessage(t('unsupportedImageFormat'));
+                    setIsIconDialogVisible(true);
+                    return;
+                }
+
+                const selectedImages = pickerResult.assets.map(image => image.uri);
+                if (selectedImages.length > 3) {
                     setIsIconDialogMessage(t('maxImages'));
                     setIsIconDialogVisible(true);
-                    return prevImages;
+                    return;
                 }
-                return [...prevImages, ...selectedImages];
-            });
+                setImages(prevImages => {
+                    const totalImages = prevImages.length + selectedImages.length;
+                    if (totalImages > 3) {
+                        setIsIconDialogMessage(t('maxImages'));
+                        setIsIconDialogVisible(true);
+                        return prevImages;
+                    }
+                    return [...prevImages, ...selectedImages];
+                });
+            }
+        } catch (error) {
+            console.error('Error opening gallery:', error);
+            setIsIconDialogMessage(t('unsupportedImageFormat'));
+            setIsIconDialogVisible(true);
         }
     };
 
     const handleOpenCamera = async () => {
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permissionResult.granted) {
-            setIsIconDialogMessage(t('cameraPermissionRequired'));
+        try {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissionResult.granted) {
+                setIsIconDialogMessage(t('cameraPermissionRequired'));
+                setIsIconDialogVisible(true);
+                return;
+            }
+            const pickerResult = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [4, 4],
+            });
+            if (!pickerResult.canceled) {
+                const image = pickerResult.assets[0];
+                if (image.mimeType && !['image/jpeg', 'image/png', 'image/jpg'].includes(image.mimeType)) {
+                    setIsIconDialogMessage(t('unsupportedImageFormat'));
+                    setIsIconDialogVisible(true);
+                    return;
+                }
+                setImages(prevImages => [...prevImages, image.uri]);
+            }
+        } catch (error) {
+            console.error('Error opening camera:', error);
+            setIsIconDialogMessage(t('unknownError'));
             setIsIconDialogVisible(true);
-            return;
-        }
-        const pickerResult = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [4, 4],
-        });
-        if (!pickerResult.canceled) {
-            setImages((prevImages) => [...prevImages, pickerResult.assets[0].uri]);
         }
     };
+
 
     const handlePost = async () => {
         if (images.length === 0) {
@@ -353,9 +384,9 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                 icon='alert-outline'
                 isVisible={isIconDialogVisible}
                 onDismiss={() => setIsIconDialogVisible(false)}
-                title={t('attention')}
+                title={t('error')}
                 content={isIconDialogMessage}
-                confirmLabel={t('ok')}
+                confirmLabel={t('forgotPasswordButton')}
             />
             {!isVerified ? (
                 <View style={styles.container}>
@@ -410,6 +441,8 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                                     underlineStyle={{ backgroundColor: 'transparent' }}
                                     underlineColor="transparent"
                                     activeUnderlineColor="transparent"
+                                    clearButtonMode='unless-editing'
+                                    right={<TextInput.Icon name="close-circle-outline" onPress={() => setTextPost('')} />}
                                     style={{ backgroundColor: 'transparent' }} // Ensure the text input aligns text at the top
                                 />
                                 <View style={styles.imagesContainer}>
@@ -422,7 +455,7 @@ const CreateNewScreen: React.FC<SettingsProps> = () => {
                                                     iconColor='#8ac5db'
                                                     size={13}
                                                     onPress={() => setImages(images.filter((_, i) => i !== index))}
-                                                    style={{ position: 'absolute', top: -5, right: -5, backgroundColor: '#f0f9fc' }}
+                                                    style={{ position: 'absolute', top: -2, right: -2, backgroundColor: '#f0f9fc' }}
                                                 />
                                             </View>
                                         ))}
@@ -631,8 +664,8 @@ const styles = StyleSheet.create({
         margin: 5,
     },
     selectedImage: {
-        width: 100,
-        height: 100,
+        width: 120,
+        height: 120,
         borderRadius: 10,
     },
     modalBackground: {
